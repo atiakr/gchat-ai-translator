@@ -1255,3 +1255,33 @@ describe('stop', () => {
     expect(mounts.statusOf(good)).toBe('translated');
   });
 });
+
+describe('주기 점검', () => {
+  it('메시지 변화 없이 방이 바뀌어도(빈 방) 다음 점검에서 방을 맞추고 발신 버튼을 다시 붙인다', async () => {
+    rig = makeRig();
+    const { adapter, outgoing } = rig;
+    await rig.controller.start();
+    await flush();
+    const before = outgoing.mountCalls.length;
+    adapter.room = { roomId: 'dm/empty' };
+    await vi.advanceTimersByTimeAsync(DEFAULTS.uiCheckMs);
+    await flush();
+    expect(rig.controller.getState().roomId).toBe('dm/empty');
+    expect(outgoing.mountCalls.length).toBeGreaterThan(before);
+    expect(outgoing.mountCalls.at(-1)).toEqual({ roomId: 'dm/empty', enabled: true });
+  });
+
+  it('같은 방이면 점검마다 발신 버튼 확인만 하고, 정지 후에는 점검하지 않는다', async () => {
+    rig = makeRig();
+    const { outgoing, messaging } = rig;
+    await rig.controller.start();
+    await flush();
+    const batches = messaging.of('translate.batch').length;
+    await vi.advanceTimersByTimeAsync(DEFAULTS.uiCheckMs * 3);
+    expect(messaging.of('translate.batch').length).toBe(batches);
+    rig.controller.stop();
+    const calls = outgoing.mountCalls.length;
+    await vi.advanceTimersByTimeAsync(DEFAULTS.uiCheckMs * 3);
+    expect(outgoing.mountCalls.length).toBe(calls);
+  });
+});

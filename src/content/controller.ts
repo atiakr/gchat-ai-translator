@@ -806,12 +806,37 @@ export function createContentController(overrides: Partial<ContentDeps> = {}): C
     await syncRoom();
     if (stopped) return;
     checkPresence(guard('listMessageContainers', () => adapter.listMessageContainers(), []).length);
+    scheduleUiCheck();
+  }
+
+  let uiCheckTimer: unknown = null;
+
+  /** 주기 점검: 방 전환(메시지 변화가 없어도)과 입력창 재렌더로 사라진 발신 버튼을 다시 맞춘다. */
+  function scheduleUiCheck(): void {
+    if (stopped) return;
+    uiCheckTimer = deps.setTimeout(() => {
+      uiCheckTimer = null;
+      if (stopped) return;
+      guard(
+        'uiCheck',
+        () => {
+          void syncRoom();
+          if (roomReady) mountOutgoing();
+        },
+        undefined,
+      );
+      scheduleUiCheck();
+    }, DEFAULTS.uiCheckMs);
   }
 
   function stop(): void {
     if (stopped) return;
     stopped = true;
     clearBrokenTimer();
+    if (uiCheckTimer !== null) {
+      guard('clearTimeout', () => deps.clearTimeout(uiCheckTimer), undefined);
+      uiCheckTimer = null;
+    }
     for (const dispose of disposers.splice(0)) guard('dispose', dispose, undefined);
     try {
       themeObserver?.disconnect();
