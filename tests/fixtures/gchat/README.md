@@ -24,3 +24,7 @@
   작성 영역 전체: `c-wiz[role="region"][jsname="kBQE3c"]`.
 - 테마: `body[data-theme="light"|"dark"]`.
 - 수정됨 표시는 샘플 화면에서 발견되지 않았다(수정 감지는 본문 텍스트 변화로 한다).
+- 인용 메시지(`quote-message.html`): 본문 요소 안 첫 자식이 인용 블록 `div[aria-hidden="true"]`(클래스 `wVNE5`)이고,
+  그 안에 인용된 원문(`div[jsname="Yj53ue"]`)과 화면 낭독기용 숨은 글자("인용됨", "발신자", "인용 종료",
+  "인용된 원본 메시지로 링크를 걸려면 L 키를 누르세요.")가 있다. 메시지 자체의 글은 인용 블록 **뒤의 텍스트 노드**다.
+  인용 컨테이너에는 `[jsname="jJpMGe"][data-inside-message-stream]` 이 있다.
