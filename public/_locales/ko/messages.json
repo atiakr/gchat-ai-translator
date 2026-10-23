@@ -118,5 +118,59 @@
   },
   "incoming_hideOriginal": {
     "message": "원문 숨기기"
+  },
+  "outgoing_buttonTitle": {
+    "message": "보내기 전 번역 (Ctrl/⌘+Shift+Enter)"
+  },
+  "outgoing_panelTitle": {
+    "message": "보내기 전 번역"
+  },
+  "outgoing_original": {
+    "message": "원문"
+  },
+  "outgoing_translation": {
+    "message": "번역문"
+  },
+  "outgoing_language": {
+    "message": "발신 언어"
+  },
+  "outgoing_saveAsDefault": {
+    "message": "이 방의 기본 언어로 저장"
+  },
+  "outgoing_translating": {
+    "message": "번역 중…"
+  },
+  "outgoing_translationPlaceholder": {
+    "message": "번역문이 여기에 표시됩니다. 직접 고칠 수 있어요."
+  },
+  "outgoing_richWarning": {
+    "message": "멘션·서식은 번역문에서 사라집니다(첨부는 유지)"
+  },
+  "outgoing_sendFailed": {
+    "message": "전송하지 못했습니다. 입력창의 번역문을 Enter 로 직접 보내세요."
+  },
+  "outgoing_close": {
+    "message": "닫기"
+  },
+  "outgoing_error_auth": {
+    "message": "API 키가 올바르지 않습니다. 설정에서 키를 확인하세요."
+  },
+  "outgoing_error_rate_limit": {
+    "message": "요청이 너무 많습니다. 잠시 후 다시 시도하세요."
+  },
+  "outgoing_error_server": {
+    "message": "번역 서비스에 문제가 있습니다. 다시 시도하세요."
+  },
+  "outgoing_error_bad_request": {
+    "message": "요청을 처리할 수 없습니다. 모델 설정을 확인하세요."
+  },
+  "outgoing_error_parse": {
+    "message": "번역 결과를 읽지 못했습니다. 다시 시도하세요."
+  },
+  "outgoing_error_unknown": {
+    "message": "번역을 요청하지 못했습니다. 다시 시도하세요."
+  },
+  "outgoing_myOriginal": {
+    "message": "내가 쓴 원문"
   }
 }
