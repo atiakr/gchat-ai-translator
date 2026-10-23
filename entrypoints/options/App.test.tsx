@@ -56,17 +56,20 @@ describe('options App', () => {
   });
 
   it('번역 기록 지우기는 확인 후 실행된다', async () => {
-    await fakeBrowser.storage.local.set({ 'cache:1': { x: 1 }, 'sentOriginal:1': { y: 1 } });
+    await fakeBrowser.storage.local.set({
+      'translationCache:1': { x: 1 },
+      'sentOriginals:1': { y: 1 },
+    });
     const user = userEvent.setup();
     render(<App />);
     await screen.findByText('options_sectionData');
     await user.click(screen.getByRole('button', { name: 'options_clearHistory' }));
-    expect((await fakeBrowser.storage.local.get(null))['cache:1']).toBeDefined();
+    expect((await fakeBrowser.storage.local.get(null))['translationCache:1']).toBeDefined();
     await screen.findByText('options_clearHistoryConfirm');
     await user.click(screen.getByRole('button', { name: 'common_confirm' }));
     await screen.findByText('options_clearHistoryDone');
     const local = await fakeBrowser.storage.local.get(null);
-    expect(local['cache:1']).toBeUndefined();
-    expect(local['sentOriginal:1']).toBeUndefined();
+    expect(local['translationCache:1']).toBeUndefined();
+    expect(local['sentOriginals:1']).toBeUndefined();
   });
 });

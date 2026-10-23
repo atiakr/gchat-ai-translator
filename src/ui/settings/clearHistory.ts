@@ -3,15 +3,13 @@ import { browser } from 'wxt/browser';
 /**
  * 번역 기록·내 원문 기록을 local 저장소에서 지운다.
  *
- * 키 접두사 가정: 엔진은 기록을 `local:cache…`, 내 원문을 `local:sentOriginal…` 아래 둔다
- * (wxt storage 의 `local:` 접두사는 실제 키에선 빠지므로 raw 키는 `cache…` / `sentOriginal…`).
- * 항목이 한 덩어리(`cache`)든 건별(`cache:<hash>`)이든 모두 잡히도록 접두사 일치로 고른다.
- * 엔진이 다른 키를 쓰게 되면 HISTORY_KEY_PREFIXES 만 맞추면 된다.
+ * 엔진(`src/engine/cache.ts`)은 기록을 `local:translationCache`, 내 원문을 `local:sentOriginals` 에 둔다
+ * (wxt storage 의 `local:` 접두사는 raw 키에서 빠진다). 두 모듈이 같은 상수를 보도록 여기서 export 한다.
  */
-export const HISTORY_KEY_PREFIXES = ['cache', 'sentOriginal'] as const;
+export const HISTORY_KEYS = ['translationCache', 'sentOriginals'] as const;
 
 export function isHistoryKey(key: string): boolean {
-  return HISTORY_KEY_PREFIXES.some((p) => key === p || key.startsWith(`${p}:`));
+  return HISTORY_KEYS.some((p) => key === p || key.startsWith(`${p}:`));
 }
 
 /** 지운 키 수를 돌려준다. 던지지 않는다. */
