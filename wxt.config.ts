@@ -8,7 +8,7 @@ export default defineConfig({
   manifest: {
     name: '__MSG_extName__',
     description: '__MSG_extDescription__',
-    default_locale: 'ko',
+    default_locale: 'en',
     permissions: [...PERMISSIONS],
     host_permissions: [...HOST_PERMISSIONS],
     optional_host_permissions: [...OPTIONAL_HOST_PERMISSIONS],

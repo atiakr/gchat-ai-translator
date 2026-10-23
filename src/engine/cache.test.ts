@@ -15,6 +15,7 @@ import {
   setMany,
   size,
 } from './cache';
+import { normalizeSentText } from './sentText';
 
 beforeEach(() => fakeBrowser.reset());
 
@@ -113,6 +114,13 @@ describe('내 원문 기록', () => {
     expect(await lookupSentOriginal('room/1', '  Hello there \n')).toBe('안녕하세요');
     expect(await lookupSentOriginal('room/2', 'Hello there')).toBeNull();
     expect(await lookupSentOriginal('room/1', 'Hello')).toBeNull();
+  });
+  it('저장·조회는 전송 매칭과 같은 정규화(연속 공백 축약)를 쓴다', async () => {
+    await saveSentOriginal('room/1', 'Hello\n\n  there', '안녕하세요');
+    expect(await lookupSentOriginal('room/1', 'Hello there')).toBe('안녕하세요');
+    expect(await lookupSentOriginal('room/1', normalizeSentText(' Hello \t there '))).toBe(
+      '안녕하세요',
+    );
   });
   it('상한을 넘으면 오래된 것부터 삭제한다', async () => {
     await saveSentOriginal('r', 'a', 'A', 1, 2);

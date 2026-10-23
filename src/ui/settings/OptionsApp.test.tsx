@@ -8,8 +8,8 @@ import {
   setBrokenState,
   setInvalidKey,
   setRoomSettings,
-} from '../../src/settings/storage';
-import { App } from './App';
+} from '../../settings/storage';
+import { OptionsApp as App } from './OptionsApp';
 
 beforeEach(() => fakeBrowser.reset());
 

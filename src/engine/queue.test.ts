@@ -108,7 +108,7 @@ describe('createBatchQueue', () => {
     await expect(a).rejects.toThrow('boom');
     await expect(b).rejects.toThrow('boom');
   });
-  it('flush 결과 개수가 다르면 오류(불변식 8)', async () => {
+  it('flush 결과 개수가 다르면 오류', async () => {
     const flush = vi.fn(async () => ['only-one']);
     const queue = createBatchQueue<string, string>({ batchSize: 2, delayMs: 10, flush });
     const a = queue.enqueue('g', 'a');

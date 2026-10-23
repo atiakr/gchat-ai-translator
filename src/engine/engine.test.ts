@@ -54,7 +54,7 @@ function item(id: string, text = `text-${id}`): TranslateBatchItem {
   return { messageId: id, text, textHash: hashString(text) };
 }
 
-describe('translateBatch — 호출 조건(불변식 5)', () => {
+describe('translateBatch — 호출 조건', () => {
   it('꺼져 있으면 서비스를 호출하지 않고 모든 항목을 error/bad_request 로 돌려준다', async () => {
     await setGlobalSettings({ enabled: false });
     const { engine, translate } = engineWith();
@@ -82,7 +82,7 @@ describe('translateBatch — 호출 조건(불변식 5)', () => {
 });
 
 describe('translateBatch — 정상 경로와 기록', () => {
-  it('번역 결과를 돌려주고 기록에 저장한다; 두 번째 요청은 기록 적중으로 호출하지 않는다(불변식 4)', async () => {
+  it('번역 결과를 돌려주고 기록에 저장한다; 두 번째 요청은 기록 적중으로 호출하지 않는다', async () => {
     const { engine, translate } = engineWith();
     const first = await engine.translateBatch('r', 'ko', [item('a'), item('b')]);
     expect(first).toEqual([
@@ -125,6 +125,46 @@ describe('translateBatch — 정상 경로와 기록', () => {
     const again = await engine.translateBatch('r', 'ko', [item('a')]);
     expect(again).toEqual(out);
     expect(translate).toHaveBeenCalledTimes(1);
+  });
+  it('번역문이 원문과 같으면(코드만 있는 메시지 등) same_language 로 돌려주고 그렇게 기록한다', async () => {
+    const code = '```\nconst x = 1;\n```';
+    const { engine, translate } = engineWith(async (req) =>
+      req.items.map((i) => ({
+        id: i.id,
+        translation: ` ${i.text}\n`,
+        detectedLang: 'und',
+        sameLanguage: false,
+      })),
+    );
+    const out = await engine.translateBatch('r', 'ko', [item('a', code)]);
+    expect(out).toEqual([{ messageId: 'a', status: 'same_language', detectedLang: 'und' }]);
+    const again = await engine.translateBatch('r', 'ko', [item('a', code)]);
+    expect(again).toEqual(out);
+    expect(translate).toHaveBeenCalledTimes(1);
+  });
+  it('발신 번역은 번역문이 원문과 같아도 그대로 돌려준다', async () => {
+    const { engine } = engineWith(async (req) =>
+      req.items.map((i) => ({
+        id: i.id,
+        translation: i.text,
+        detectedLang: 'en',
+        sameLanguage: false,
+      })),
+    );
+    const out = await engine.translateOutgoing('r', 'https://x.example', 'en');
+    expect(out).toEqual({ ok: true, translation: 'https://x.example', detectedLang: 'en' });
+  });
+  it('기록 저장이 실패해도 묶음 결과는 정상으로 돌려준다', async () => {
+    const spy = vi.spyOn(cache, 'setMany').mockRejectedValue(new Error('QUOTA_BYTES exceeded'));
+    try {
+      const { engine } = engineWith();
+      const out = await engine.translateBatch('r', 'ko', [item('a')]);
+      expect(out).toEqual([
+        { messageId: 'a', status: 'translated', translation: '번역(text-a)', detectedLang: 'en' },
+      ]);
+    } finally {
+      spy.mockRestore();
+    }
   });
   it('항목 단위 실패(failed)는 error/parse 이며 기록하지 않는다', async () => {
     const { engine, translate } = engineWith(async (req) =>

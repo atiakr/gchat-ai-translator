@@ -24,7 +24,7 @@ import {
 
 /**
  * 번역 엔진. background service worker 에서만 만들어 쓴다.
- * - 호출 전 canTranslate() 확인(불변식 5), 기록 적중 시 호출 없음(불변식 4)
+ * - 호출 전 canTranslate() 확인, 기록 적중 시 호출 없음
  * - 수신: 기록 조회 → 진행 중 합치기 → 묶음 대기열 → 서비스당 동시 제한 → 재시도
  * - 발신: 대기열을 거치지 않고 즉시 단독 호출
  * - 인증 오류 → 틀린 키 상태 기록 + 배지 갱신
@@ -154,7 +154,9 @@ export function createEngine(deps: EngineDeps = {}): Engine {
   ): { item: TranslateBatchResultItem; cacheEntry: CacheEntry | null } {
     const { messageId } = entry.item;
     if (!result || result.failed) return { item: errorItem(messageId, 'parse'), cacheEntry: null };
-    if (result.sameLanguage) {
+    // 코드·URL·멘션만 있는 메시지처럼 번역문이 원문과 같으면 보일 것이 없으므로 same_language 로 본다.
+    const unchanged = result.translation.trim() === entry.item.text.trim();
+    if (result.sameLanguage || unchanged) {
       return {
         item: { messageId, status: 'same_language', detectedLang: result.detectedLang },
         cacheEntry: {
@@ -205,7 +207,11 @@ export function createEngine(deps: EngineDeps = {}): Engine {
     const savedAt = now();
     const mapped = entries.map((e) => mapIncoming(e, byId.get(e.key), savedAt));
     const toCache = mapped.flatMap((m) => (m.cacheEntry ? [m.cacheEntry] : []));
-    await cache.setMany(toCache, limits.cacheMaxEntries);
+    try {
+      await cache.setMany(toCache, limits.cacheMaxEntries);
+    } catch {
+      // 기록 저장 실패(용량 등)는 이번 결과 표시를 막지 않는다. 다음에 다시 호출될 뿐이다.
+    }
     return mapped.map((m) => m.item);
   }
 

@@ -11,7 +11,7 @@ export default defineContentScript({
   main() {
     const controller = createContentController();
     controller.start().catch((error: unknown) => {
-      // 시작 실패가 Google Chat 화면에 번지지 않게 한다(불변식 6).
+      // 시작 실패가 Google Chat 화면에 번지지 않게 한다.
       console.warn('[gchat-ai-translator] content start failed', error);
     });
   },

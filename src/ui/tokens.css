@@ -1,5 +1,6 @@
 /*
- * 디자인 토큰 (토스 스타일: 절제된 면, 한 가지 포인트 색, 둥근 모서리, 가벼운 그림자).
+ * 디자인 토큰 (절제된 면, 한 가지 포인트 색, 둥근 모서리, 가벼운 그림자).
+ * 컴포넌트 CSS 는 색·그림자 값을 직접 쓰지 않고 여기의 --gat-* 만 쓴다.
  * 호스트(Shadow root 의 :host 또는 문서의 :root)에 data-theme="light|dark" 를 건다.
  */
 :host,
@@ -39,6 +40,11 @@
   --gat-warn-soft: #fff6e5;
   --gat-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.06);
   --gat-focus: 0 0 0 3px rgba(49, 130, 246, 0.3);
+  /* 포인트 색(파랑·빨강) 면 위의 글자색 */
+  --gat-on-accent: #ffffff;
+  --gat-toggle-thumb: #ffffff;
+  --gat-shadow-thumb: 0 1px 3px rgba(0, 0, 0, 0.2);
+  --gat-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.08);
 }
 
 :host([data-theme="dark"]),
@@ -54,4 +60,8 @@
   --gat-danger-soft: #3a1f23;
   --gat-warn-soft: #3a3020;
   --gat-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.35);
+  --gat-on-accent: #ffffff;
+  --gat-toggle-thumb: #f2f4f6;
+  --gat-shadow-thumb: 0 1px 3px rgba(0, 0, 0, 0.5);
+  --gat-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
 }

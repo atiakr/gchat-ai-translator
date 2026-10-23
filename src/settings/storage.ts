@@ -157,7 +157,10 @@ export async function markOnboarded(): Promise<void> {
   await installedItem.setValue(true);
 }
 
-/** 번역 가능 조건(불변식 5): 전역 스위치 + 활성 서비스의 유효한 키(커스텀 서비스는 빈 키 허용). */
+/**
+ * 번역 가능 조건: 전역 스위치 + 활성 서비스의 유효한 키(커스텀 서비스는 빈 키 허용, 대신 주소 필수).
+ * 하나라도 아니면 어떤 번역 호출도 하지 않는다.
+ */
 export async function canTranslate(): Promise<{
   ok: boolean;
   reason?: 'disabled' | 'no_key' | 'invalid_key';
@@ -166,7 +169,12 @@ export async function canTranslate(): Promise<{
   if (!settings.enabled) return { ok: false, reason: 'disabled' };
   const keys = await getApiKeys();
   const provider = settings.activeProvider;
-  if (provider !== 'openai_compatible' && !keys[provider]) return { ok: false, reason: 'no_key' };
+  if (provider === 'openai_compatible') {
+    // 호환 서비스는 키가 비어도 되지만 주소가 없으면 호출할 곳이 없다.
+    if (!settings.customBaseUrl.trim()) return { ok: false, reason: 'no_key' };
+  } else if (!keys[provider]) {
+    return { ok: false, reason: 'no_key' };
+  }
   const invalid = await getInvalidKeys();
   if (invalid[provider]) return { ok: false, reason: 'invalid_key' };
   return { ok: true };
