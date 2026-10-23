@@ -58,6 +58,8 @@ export interface TranslateItemResult {
   detectedLang: string;
   /** 원문 언어가 대상 언어와 같은가(서비스 판정). */
   sameLanguage: boolean;
+  /** 응답의 항목 수·id 는 맞지만 이 항목의 번역문이 비었거나 형식이 틀린 경우. */
+  failed?: true;
 }
 
 /** 서비스가 호출에 쓰는 자격 정보·설정. 키는 background/옵션 페이지만 다룬다. */

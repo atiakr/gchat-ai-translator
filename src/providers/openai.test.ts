@@ -162,7 +162,13 @@ describe('openaiProvider', () => {
     });
     stubFetch({ body: openaiBody(text) });
     const out = await openaiProvider.translate(makeRequest(), makeConfig());
-    expect(out[0]).toEqual({ id: 'a', translation: '', detectedLang: 'und', sameLanguage: false });
+    expect(out[0]).toEqual({
+      id: 'a',
+      translation: '',
+      detectedLang: 'und',
+      sameLanguage: false,
+      failed: true,
+    });
     expect(out[1]?.translation).toBe('좋아');
   });
 });

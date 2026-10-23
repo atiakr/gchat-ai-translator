@@ -85,7 +85,13 @@ describe('parseTranslationOutput', () => {
       ],
     });
     const out = parseTranslationOutput(text, items);
-    expect(out[0]).toEqual({ id: 'a', translation: '', detectedLang: 'und', sameLanguage: false });
+    expect(out[0]).toEqual({
+      id: 'a',
+      translation: '',
+      detectedLang: 'und',
+      sameLanguage: false,
+      failed: true,
+    });
     expect(out[1]).toEqual({ id: 'b', translation: 'ok', detectedLang: 'en', sameLanguage: false });
   });
   it('same_language 가 boolean 이 아니면 false, detected_lang 는 정규화', () => {
