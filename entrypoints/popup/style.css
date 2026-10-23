@@ -1,0 +1,33 @@
+/* 팝업 레이아웃(폭 320px). 토큰·공용 컴포넌트 스타일은 App.tsx 에서 먼저 불러온다. */
+html,
+body {
+  margin: 0;
+  width: 320px;
+  background: var(--gat-bg-subtle);
+}
+
+.popup-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gat-space-3);
+  padding: var(--gat-space-4);
+}
+
+.popup-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gat-space-3);
+}
+
+.popup-header h1 {
+  margin: 0;
+  font-size: var(--gat-font-size-lg);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.popup-footer {
+  display: flex;
+  justify-content: flex-end;
+}

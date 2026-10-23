@@ -1,0 +1,489 @@
+/*
+ * 옵션·팝업 공용 컴포넌트 스타일 (토스 스타일). 값은 모두 tokens.css 의 토큰을 쓴다.
+ * 페이지 자체는 tokens.css 를 먼저 불러온 뒤 이 파일을 불러온다.
+ */
+
+.gat-page {
+  margin: 0;
+  background: var(--gat-bg-subtle);
+  color: var(--gat-fg);
+  font-family: var(--gat-font);
+  font-size: var(--gat-font-size);
+  line-height: var(--gat-line);
+  -webkit-font-smoothing: antialiased;
+}
+
+.gat-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gat-space-4);
+}
+
+.gat-stack--tight {
+  gap: var(--gat-space-3);
+}
+
+.gat-row {
+  display: flex;
+  align-items: center;
+  gap: var(--gat-space-2);
+}
+
+.gat-row--between {
+  justify-content: space-between;
+}
+
+.gat-row--wrap {
+  flex-wrap: wrap;
+}
+
+.gat-muted {
+  color: var(--gat-fg-muted);
+  font-size: var(--gat-font-size-sm);
+}
+
+/* ---- Card ---- */
+.gat-card {
+  background: var(--gat-bg-elevated);
+  border-radius: var(--gat-radius);
+  box-shadow: var(--gat-shadow);
+  padding: var(--gat-space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--gat-space-4);
+}
+
+.gat-card--compact {
+  padding: var(--gat-space-4);
+  gap: var(--gat-space-3);
+}
+
+.gat-card__header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gat-space-1);
+}
+
+.gat-card__title {
+  margin: 0;
+  font-size: var(--gat-font-size-lg);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.gat-card__description {
+  margin: 0;
+  color: var(--gat-fg-secondary);
+  font-size: var(--gat-font-size-sm);
+}
+
+.gat-subcard {
+  border: 1px solid var(--gat-border);
+  border-radius: var(--gat-radius);
+  padding: var(--gat-space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--gat-space-3);
+}
+
+.gat-subcard--active {
+  border-color: var(--gat-blue);
+}
+
+.gat-subcard__title {
+  margin: 0;
+  font-size: var(--gat-font-size);
+  font-weight: 600;
+}
+
+/* ---- Button ---- */
+.gat-btn {
+  appearance: none;
+  border: 1px solid transparent;
+  border-radius: var(--gat-radius-sm);
+  padding: var(--gat-space-2) var(--gat-space-4);
+  font: inherit;
+  font-weight: 600;
+  line-height: 1.3;
+  cursor: pointer;
+  transition:
+    background-color 120ms ease,
+    opacity 120ms ease;
+  white-space: nowrap;
+}
+
+.gat-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--gat-focus);
+}
+
+.gat-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.gat-btn--primary {
+  background: var(--gat-blue);
+  color: #fff;
+}
+
+.gat-btn--primary:not(:disabled):hover {
+  background: var(--gat-blue-strong);
+}
+
+.gat-btn--secondary {
+  background: var(--gat-bg-subtle);
+  color: var(--gat-fg);
+}
+
+.gat-btn--secondary:not(:disabled):hover {
+  background: var(--gat-border);
+}
+
+.gat-btn--danger {
+  background: var(--gat-danger-soft);
+  color: var(--gat-danger);
+}
+
+.gat-btn--danger:not(:disabled):hover {
+  background: var(--gat-danger);
+  color: #fff;
+}
+
+.gat-btn--sm {
+  padding: var(--gat-space-1) var(--gat-space-3);
+  font-size: var(--gat-font-size-sm);
+}
+
+.gat-btn--link {
+  background: none;
+  color: var(--gat-blue);
+  padding: 0;
+  border: 0;
+  font-weight: 600;
+}
+
+/* ---- Toggle (switch) ---- */
+.gat-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gat-space-3);
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+}
+
+.gat-toggle:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.gat-toggle__track {
+  position: relative;
+  width: 40px;
+  height: 24px;
+  border-radius: var(--gat-radius-pill);
+  background: var(--gat-border);
+  transition: background-color 150ms ease;
+  flex: none;
+}
+
+.gat-toggle__thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  transition: transform 150ms ease;
+}
+
+.gat-toggle[aria-checked="true"] .gat-toggle__track {
+  background: var(--gat-blue);
+}
+
+.gat-toggle[aria-checked="true"] .gat-toggle__thumb {
+  transform: translateX(16px);
+}
+
+.gat-toggle:focus-visible {
+  outline: none;
+}
+
+.gat-toggle:focus-visible .gat-toggle__track {
+  box-shadow: var(--gat-focus);
+}
+
+.gat-toggle__label {
+  font-weight: 500;
+}
+
+/* ---- Field ---- */
+.gat-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gat-space-1);
+}
+
+.gat-field__label {
+  font-weight: 600;
+  font-size: var(--gat-font-size-sm);
+  color: var(--gat-fg-secondary);
+}
+
+.gat-field__help {
+  margin: 0;
+  color: var(--gat-fg-muted);
+  font-size: var(--gat-font-size-sm);
+}
+
+.gat-field__error {
+  margin: 0;
+  color: var(--gat-danger);
+  font-size: var(--gat-font-size-sm);
+}
+
+/* ---- Inputs ---- */
+.gat-input,
+.gat-select,
+.gat-textarea {
+  appearance: none;
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--gat-border);
+  border-radius: var(--gat-radius-sm);
+  background: var(--gat-bg);
+  color: var(--gat-fg);
+  font: inherit;
+  padding: var(--gat-space-2) var(--gat-space-3);
+  transition: border-color 120ms ease;
+}
+
+.gat-input::placeholder,
+.gat-textarea::placeholder {
+  color: var(--gat-fg-muted);
+}
+
+.gat-input:focus,
+.gat-select:focus,
+.gat-textarea:focus {
+  outline: none;
+  border-color: var(--gat-blue);
+  box-shadow: var(--gat-focus);
+}
+
+.gat-input[aria-invalid="true"] {
+  border-color: var(--gat-danger);
+}
+
+.gat-textarea {
+  min-height: 72px;
+  resize: vertical;
+}
+
+.gat-select {
+  padding-right: var(--gat-space-5);
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--gat-fg-muted) 50%),
+    linear-gradient(135deg, var(--gat-fg-muted) 50%, transparent 50%);
+  background-position:
+    calc(100% - 16px) 50%,
+    calc(100% - 11px) 50%;
+  background-size: 5px 5px;
+  background-repeat: no-repeat;
+}
+
+.gat-textfield {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.gat-textfield--reveal .gat-input {
+  padding-right: 56px;
+}
+
+.gat-textfield__reveal {
+  position: absolute;
+  right: var(--gat-space-2);
+  background: none;
+  border: 0;
+  color: var(--gat-blue);
+  font: inherit;
+  font-size: var(--gat-font-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+  padding: var(--gat-space-1);
+  border-radius: var(--gat-radius-sm);
+}
+
+.gat-textfield__reveal:focus-visible {
+  outline: none;
+  box-shadow: var(--gat-focus);
+}
+
+/* ---- Banner ---- */
+.gat-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--gat-space-3);
+  border-radius: var(--gat-radius);
+  padding: var(--gat-space-3) var(--gat-space-4);
+  font-size: var(--gat-font-size-sm);
+  line-height: 1.45;
+}
+
+.gat-banner__body {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.gat-banner__actions {
+  display: flex;
+  gap: var(--gat-space-2);
+  flex: none;
+}
+
+.gat-banner--warning {
+  background: var(--gat-warn-soft);
+  color: var(--gat-fg);
+}
+
+.gat-banner--error {
+  background: var(--gat-danger-soft);
+  color: var(--gat-danger);
+}
+
+.gat-banner--success {
+  background: var(--gat-blue-soft);
+  color: var(--gat-blue-strong);
+}
+
+/* ---- Radio group (segmented) ---- */
+.gat-segment {
+  display: inline-flex;
+  background: var(--gat-bg-subtle);
+  border-radius: var(--gat-radius-sm);
+  padding: 3px;
+  gap: 2px;
+  flex-wrap: wrap;
+}
+
+.gat-segment__item {
+  position: relative;
+}
+
+.gat-segment__item input {
+  position: absolute;
+  opacity: 0;
+  inset: 0;
+  margin: 0;
+  cursor: pointer;
+}
+
+.gat-segment__item span {
+  display: inline-block;
+  padding: var(--gat-space-1) var(--gat-space-3);
+  border-radius: 6px;
+  font-size: var(--gat-font-size-sm);
+  font-weight: 600;
+  color: var(--gat-fg-secondary);
+  transition: background-color 120ms ease;
+}
+
+.gat-segment__item input:checked + span {
+  background: var(--gat-bg-elevated);
+  color: var(--gat-blue-strong);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+.gat-segment__item input:focus-visible + span {
+  box-shadow: var(--gat-focus);
+}
+
+/* ---- Chips (model suggestions) ---- */
+.gat-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gat-space-2);
+}
+
+.gat-chip {
+  border: 1px solid var(--gat-border);
+  border-radius: var(--gat-radius-pill);
+  background: var(--gat-bg);
+  color: var(--gat-fg-secondary);
+  font: inherit;
+  font-size: var(--gat-font-size-sm);
+  padding: 2px var(--gat-space-3);
+  cursor: pointer;
+}
+
+.gat-chip:hover {
+  border-color: var(--gat-blue);
+  color: var(--gat-blue-strong);
+}
+
+.gat-chip--selected {
+  border-color: var(--gat-blue);
+  background: var(--gat-blue-soft);
+  color: var(--gat-blue-strong);
+}
+
+.gat-chip__hint {
+  color: var(--gat-fg-muted);
+  margin-left: var(--gat-space-1);
+}
+
+/* ---- Lists (rooms) ---- */
+.gat-list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.gat-list__item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gat-space-2);
+  padding: var(--gat-space-3) 0;
+  border-top: 1px solid var(--gat-border);
+}
+
+.gat-list__item:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.gat-list__title {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+/* ---- Key/value summary ---- */
+.gat-kv {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: var(--gat-space-3);
+  row-gap: var(--gat-space-1);
+  margin: 0;
+}
+
+.gat-kv dt {
+  color: var(--gat-fg-muted);
+  font-size: var(--gat-font-size-sm);
+}
+
+.gat-kv dd {
+  margin: 0;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
