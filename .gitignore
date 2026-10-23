@@ -1,0 +1,8 @@
+# dependencies / build
+node_modules
+.output
+.wxt
+*.log
+.env
+.env.*
+.DS_Store

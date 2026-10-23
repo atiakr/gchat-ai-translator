@@ -1,0 +1,7 @@
+{
+  "extName": { "message": "GChat AI Translator" },
+  "extDescription": {
+    "message": "Real-time AI translation for Google Chat with your own LLM API key."
+  },
+  "commandTranslateOutgoing": { "message": "Translate before sending" }
+}

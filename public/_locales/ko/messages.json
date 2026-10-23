@@ -1,0 +1,5 @@
+{
+  "extName": { "message": "GChat AI Translator" },
+  "extDescription": { "message": "Google Chat 메시지를 내 LLM API 키로 실시간 번역합니다." },
+  "commandTranslateOutgoing": { "message": "보내기 전 번역" }
+}
