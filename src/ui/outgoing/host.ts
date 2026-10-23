@@ -28,6 +28,8 @@ export function createShadowHost(kind: OutgoingHostKind, theme: Theme): ShadowHo
     // `contain: content` 는 그대로 두어 바깥 레이아웃에는 자기 크기만큼만 영향을 준다.
     el.style.display = 'inline-flex';
     el.style.verticalAlign = 'middle';
+    // 입력창 줄(flex)에 놓일 때 보내기 버튼과 세로 중앙을 맞춘다.
+    el.style.alignSelf = 'center';
   }
   const shownDisplay = el.style.display;
   const mount = document.createElement('div');

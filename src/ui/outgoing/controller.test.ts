@@ -40,10 +40,13 @@ function buildComposer(): ComposerInfo {
   textbox.setAttribute('contenteditable', 'true');
   const sendButton = document.createElement('button');
   sendButton.className = 'send';
-  wrapper.append(textbox, sendButton);
+  // 실제 화면처럼 보내기 버튼은 폭이 고정된 묶음 안에 있다
+  const sendGroup = document.createElement('div');
+  sendGroup.append(sendButton);
+  wrapper.append(textbox, sendGroup);
   region.append(wrapper);
   document.body.append(region);
-  return { textbox, sendButton, region };
+  return { textbox, sendButton, sendGroup, region };
 }
 
 function makeAdapter(): FakeAdapter {
@@ -212,14 +215,14 @@ afterEach(() => {
 /* ------------------------------------------------------------------ */
 
 describe('mount / setEnabled', () => {
-  it('mount 는 보내기 버튼 옆에 Shadow DOM 호스트를 넣고 입력창에 키 핸들러를 건다', () => {
+  it('mount 는 보내기 버튼 묶음 앞(묶음 바깥)에 Shadow DOM 호스트를 넣고 입력창에 키 핸들러를 건다', () => {
     const h = track(setup());
     h.controller.mount(ROOM, true);
     const host = buttonHost();
     expect(host).not.toBeNull();
     expect(host?.shadowRoot).not.toBeNull();
-    expect(host?.parentElement).toBe(h.adapter.composer?.sendButton?.parentElement);
-    expect(host?.nextElementSibling).toBe(h.adapter.composer?.sendButton);
+    expect(host?.nextElementSibling).toBe(h.adapter.composer?.sendGroup);
+    expect(h.adapter.composer?.sendGroup?.contains(host ?? null)).toBe(false);
     expect(host?.hidden).toBe(false);
     // 문서 수준 핸들러는 없다: 입력창 바깥에서 누른 키는 무시된다
     document.body.dispatchEvent(

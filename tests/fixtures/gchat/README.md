@@ -22,6 +22,9 @@
 - 입력창: `div[role="textbox"][contenteditable="true"][jsname="yrriRe"]`(비었을 때 `<div><br></div>`).
   보내기 버튼: `button[jsname="GBTyxb"]`(aria-label "메시지 보내기"). 둘의 공통 조상: `div[jsname="SFaVIf"]`,
   작성 영역 전체: `c-wiz[role="region"][jsname="kBQE3c"]`.
+  `SFaVIf` 는 가로 flex 줄이고, 보내기 버튼은 그 직계 자식 `div[jsname="enxoGf"]`(예약 전송 화살표 + 보내기) 안
+  폭 44px 로 고정된 래퍼 여러 겹 속에 있다(2026-10-24 확인). 번역 버튼을 보내기 버튼 바로 옆에 끼우면 위로 밀려
+  쌓이므로, `SFaVIf` 의 직계 자식 중 보내기 버튼을 품은 요소 바로 앞에 둔다.
 - 테마: `body[data-theme="light"|"dark"]`.
 - 수정됨 표시는 샘플 화면에서 발견되지 않았다(수정 감지는 본문 텍스트 변화로 한다).
 - 인용 메시지(`quote-message.html`): 본문 요소 안 첫 자식이 인용 블록 `div[aria-hidden="true"]`(클래스 `wVNE5`)이고,

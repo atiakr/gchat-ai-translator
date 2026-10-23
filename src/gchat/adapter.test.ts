@@ -388,6 +388,8 @@ describe('composer', () => {
     expect(main?.textbox.closest('[role="main"]')).not.toBeNull();
     expect(main?.sendButton?.getAttribute('jsname')).toBe('GBTyxb');
     expect(main?.region.getAttribute('jsname')).toBe('kBQE3c');
+    expect(main?.sendGroup?.parentElement?.getAttribute('jsname')).toBe('SFaVIf');
+    expect(main?.sendGroup?.contains(main.sendButton ?? null)).toBe(true);
 
     const panelTextbox = document.querySelector<HTMLElement>(
       '[role="complementary"] [role="textbox"]',

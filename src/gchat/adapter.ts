@@ -50,6 +50,11 @@ export interface MessageInfo {
 export interface ComposerInfo {
   textbox: HTMLElement;
   sendButton: HTMLButtonElement | null;
+  /**
+   * 입력창 줄(`composerWrapper`)의 직계 자식 중 보내기 버튼을 품은 요소. 보내기 버튼은 폭이 고정된
+   * 래퍼 안에 있어서 그 안에 끼우면 버튼이 위로 밀려 쌓인다. 번역 버튼은 이 요소 바로 앞에 둔다.
+   */
+  sendGroup: HTMLElement | null;
   /** 작성 영역(`c-wiz[role=region]`). 못 찾으면 공통 조상, 그것도 없으면 textbox 자신. */
   region: HTMLElement;
 }
@@ -483,7 +488,16 @@ function composerFromTextbox(textbox: HTMLElement): ComposerInfo {
     safeClosest(textbox, SELECTORS.composerWrapper) ??
     textbox;
   const sendButton = safeQuery<HTMLButtonElement>(region, SELECTORS.sendButton);
-  return { textbox, sendButton, region };
+  return { textbox, sendButton, sendGroup: sendGroupOf(sendButton), region };
+}
+
+function sendGroupOf(sendButton: HTMLElement | null): HTMLElement | null {
+  if (!sendButton) return null;
+  const row = safeClosest(sendButton, SELECTORS.composerWrapper);
+  if (!row) return null;
+  let el: HTMLElement = sendButton;
+  while (el.parentElement && el.parentElement !== row) el = el.parentElement;
+  return el.parentElement === row ? el : null;
 }
 
 /** 문서 안의 모든 작성 영역(메인 + 스레드 패널), 문서 순서. */

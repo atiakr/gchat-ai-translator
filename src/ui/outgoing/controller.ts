@@ -182,8 +182,9 @@ export function createOutgoingController(
   function mountButton(nextRoomId: string, composer: ComposerInfo): void {
     unmountButton();
     const host = createShadowHost('button', adapter.getChatTheme());
-    const { sendButton, region } = composer;
-    if (sendButton?.parentElement) sendButton.insertAdjacentElement('beforebegin', host.el);
+    const { sendButton, sendGroup, region } = composer;
+    if (sendGroup?.parentElement) sendGroup.insertAdjacentElement('beforebegin', host.el);
+    else if (sendButton?.parentElement) sendButton.insertAdjacentElement('beforebegin', host.el);
     else region.append(host.el);
     const root = createRoot(host.mount);
     root.render(createElement(TranslateButton, { onClick: () => void trigger() }));
