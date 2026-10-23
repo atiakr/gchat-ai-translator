@@ -80,9 +80,6 @@
   "common_loading": {
     "message": "Translating…"
   },
-  "incoming_translatedLabel": {
-    "message": "Translated"
-  },
   "incoming_loading": {
     "message": "Translating…"
   },
@@ -113,11 +110,11 @@
   "incoming_skippedLimit": {
     "message": "Skipped: older message"
   },
-  "incoming_showOriginal": {
-    "message": "Show original"
+  "incoming_seeOriginal": {
+    "message": "See original"
   },
-  "incoming_hideOriginal": {
-    "message": "Hide original"
+  "incoming_seeTranslation": {
+    "message": "See translation"
   },
   "outgoing_buttonTitle": {
     "message": "Translate before sending (Ctrl/⌘+Shift+Enter)"
@@ -284,12 +281,6 @@
   },
   "options_outgoingLang": {
     "message": "Default outgoing language"
-  },
-  "options_hideOriginal": {
-    "message": "Hide original"
-  },
-  "options_hideOriginalHelp": {
-    "message": "Show only the translation and collapse the original."
   },
   "options_instructions": {
     "message": "Extra instructions"

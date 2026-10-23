@@ -235,7 +235,6 @@ export function createContentController(overrides: Partial<ContentDeps> = {}): C
   function propsFor(entry: Tracked): IncomingProps {
     const props: IncomingProps = {
       status: entry.status,
-      hideOriginal: settings?.hideOriginal === true,
       onRetry: () => retry(entry.messageId),
     };
     if (entry.translation !== undefined) props.translation = entry.translation;
@@ -269,7 +268,6 @@ export function createContentController(overrides: Partial<ContentDeps> = {}): C
         if (handle) {
           handle.update({
             status,
-            hideOriginal: settings?.hideOriginal === true,
             translation: extra.translation,
             errorKind: extra.errorKind,
           });
@@ -424,20 +422,17 @@ export function createContentController(overrides: Partial<ContentDeps> = {}): C
 
   /**
    * 컨테이너들을 처리한다. 판정이 ok 인 것만 한 묶음으로 요청한다.
-   * `changed` 는 수정 감지 틱: 해시가 같으면 아무것도 하지 않고, 다르면 새 본문으로 다시 번역한다.
+   * 수정 감지 틱(`changed`)도 같은 경로다: 해시가 같으면 요청하지 않고(사라진 UI 만 복구), 다르면 새 본문으로
+   * 다시 번역한다.
    */
-  function process(targets: HTMLElement[], options: { changed?: boolean } = {}): void {
+  function process(targets: HTMLElement[]): void {
     if (stopped || !incomingActive() || targets.length === 0) return;
     const all = guard('listMessageContainers', () => adapter.listMessageContainers(), []);
     const ranks = computeRanks(all);
     const batch = new Map<string, Tracked>();
 
     for (const container of targets) {
-      guard(
-        'process message',
-        () => processOne(container, ranks, batch, options.changed === true),
-        undefined,
-      );
+      guard('process message', () => processOne(container, ranks, batch), undefined);
     }
 
     if (batch.size > 0) void sendBatch(Array.from(batch.values()));
@@ -447,7 +442,6 @@ export function createContentController(overrides: Partial<ContentDeps> = {}): C
     container: HTMLElement,
     ranks: Map<string, number>,
     batch: Map<string, Tracked>,
-    changed: boolean,
   ): void {
     const info = adapter.readMessage(container);
     if (!info || info.isOwn || !inRoom(info)) return;
@@ -462,16 +456,11 @@ export function createContentController(overrides: Partial<ContentDeps> = {}): C
     if (existing && existing.textHash === textHash) {
       existing.container = container;
       byContainer.set(container, info.messageId);
-      if (changed) return;
-      // 같은 메시지가 재렌더로 다시 추가됨 → 요청 없이 알던 상태를 다시 붙인다.
-      if (
-        existing.status !== 'pending' &&
-        existing.status !== 'same_language' &&
-        existing.status !== 'no_text' &&
-        !deps.getMounted(container)
-      ) {
-        mountEntry(existing);
-      }
+      // 본문이 그대로면 요청하지 않는다. 다만 Google 이 본문을 다시 그려(재추가·재렌더) 호스트나 원문 감싸개가
+      // 사라졌으면 상태 맵에 남은 마지막 결과로 요청 없이 다시 붙인다.
+      if (existing.status === 'same_language' || existing.status === 'no_text') return;
+      const mounted = deps.getMounted(container);
+      if (mounted ? !mounted.isAttached() : existing.status !== 'pending') mountEntry(existing);
       return;
     }
 
@@ -559,17 +548,6 @@ export function createContentController(overrides: Partial<ContentDeps> = {}): C
 
   function refreshOutgoing(): void {
     guard('outgoing.setEnabled', () => outgoing?.setEnabled(outgoingEnabled()), undefined);
-  }
-
-  function updateHideOriginal(): void {
-    const hideOriginal = settings?.hideOriginal === true;
-    for (const entry of tracked.values()) {
-      guard(
-        'hideOriginal update',
-        () => deps.getMounted(entry.container)?.update({ hideOriginal }),
-        undefined,
-      );
-    }
   }
 
   function restoreOwn(containers: HTMLElement[]): void {
@@ -716,7 +694,7 @@ export function createContentController(overrides: Partial<ContentDeps> = {}): C
       restoreOwn(added);
       mountOutgoing();
     }
-    if (changed.length > 0) process(changed, { changed: true });
+    if (changed.length > 0) process(changed);
   }
 
   /* ---------------------------------------------------------------- */
@@ -751,12 +729,10 @@ export function createContentController(overrides: Partial<ContentDeps> = {}): C
   /* ---------------------------------------------------------------- */
 
   function applySettings(next: GlobalSettings, nextCanTranslate: boolean): void {
-    const prevHide = settings?.hideOriginal === true;
     settings = next;
     canTranslate = nextCanTranslate;
     refreshOutgoing();
     refreshIncoming();
-    if (prevHide !== (next.hideOriginal === true)) updateHideOriginal();
   }
 
   let settingsRetries = 0;

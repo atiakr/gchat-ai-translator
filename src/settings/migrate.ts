@@ -18,6 +18,11 @@ export function migrateGlobalSettings(stored: unknown): GlobalSettings {
   if (version < 1) {
     base.version = 1;
   }
+  // v1 → v2: '원문 숨기기'(hideOriginal) 제거. 번역문은 항상 원문 자리를 대신한다.
+  if (version < 2) {
+    delete base.hideOriginal;
+    base.version = 2;
+  }
 
   const out: GlobalSettings = {
     ...DEFAULT_GLOBAL_SETTINGS,
@@ -35,7 +40,6 @@ export function migrateGlobalSettings(stored: unknown): GlobalSettings {
   if (typeof base.targetLang === 'string' && base.targetLang) out.targetLang = base.targetLang;
   if (typeof base.outgoingLang === 'string' && base.outgoingLang)
     out.outgoingLang = base.outgoingLang;
-  if (typeof base.hideOriginal === 'boolean') out.hideOriginal = base.hideOriginal;
   if (typeof base.instructions === 'string') out.instructions = base.instructions;
   if (typeof base.maxMessageChars === 'number' && base.maxMessageChars > 0)
     out.maxMessageChars = base.maxMessageChars;

@@ -9,10 +9,8 @@ export interface IncomingViewProps {
   status: TranslationStatus;
   translation?: string;
   errorKind?: ErrorKind;
-  /** 설정 '원문 숨기기'. */
-  hideOriginal: boolean;
   onRetry: () => void;
-  /** hideOriginal 일 때 원문이 펼쳐져 있는가(mount 가 관리). */
+  /** translated 일 때 원문을 보고 있는가(번역문은 숨김). mount 가 관리한다. */
   originalVisible?: boolean;
   onToggleOriginal?: () => void;
 }
@@ -22,7 +20,6 @@ export function IncomingView({
   status,
   translation,
   errorKind,
-  hideOriginal,
   onRetry,
   originalVisible,
   onToggleOriginal,
@@ -36,7 +33,6 @@ export function IncomingView({
       body = (
         <TranslationBlock
           translation={translation ?? ''}
-          hideOriginal={hideOriginal}
           originalVisible={originalVisible}
           onToggleOriginal={onToggleOriginal}
         />

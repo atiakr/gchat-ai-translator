@@ -1,4 +1,4 @@
-/* 수신 번역 UI. 원문보다 한 단계 낮은 톤, 장식 없음. */
+/* 수신 번역 UI. 상태 줄은 원문보다 한 단계 낮은 톤, 번역문은 원문과 같은 톤. 장식 없음. */
 .gat-incoming {
   box-sizing: border-box;
   margin: var(--gat-space-1) 0 0;
@@ -15,63 +15,49 @@
   box-sizing: inherit;
 }
 
-/* 번역 블록 */
-.gat-block {
-  display: block;
-  width: 100%;
+/* 번역문: 원문 자리를 대신하므로 Google 의 본문 글자(크기·색·줄 간격)를 그대로 물려받는다. */
+.gat-incoming[data-status="translated"] {
   margin: 0;
-  padding: var(--gat-space-2) var(--gat-space-3);
-  border: 0;
-  border-radius: var(--gat-radius-sm);
-  background: var(--gat-bg-subtle);
-  color: var(--gat-fg-secondary);
   font: inherit;
-  text-align: left;
+  color: inherit;
 }
 
-.gat-block--toggle {
+.gat-translated {
+  margin: 0;
+}
+
+.gat-translated__text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* 작은 [원문보기]/[번역 보기] 글자 버튼 */
+.gat-toggle {
+  display: inline;
+  margin: 0 0 0 var(--gat-space-2);
+  padding: 0;
+  border: 0;
+  border-radius: var(--gat-radius-sm);
+  background: none;
+  font-family: var(--gat-font);
+  font-size: var(--gat-font-size-sm);
+  line-height: inherit;
+  color: var(--gat-fg-muted);
+  white-space: nowrap;
   cursor: pointer;
 }
 
-.gat-block--toggle:focus-visible {
-  outline: none;
-  box-shadow: var(--gat-focus);
+.gat-translated--original .gat-toggle {
+  margin-left: 0;
 }
 
-.gat-block__head {
-  display: flex;
-  align-items: center;
-  gap: var(--gat-space-2);
-  margin-bottom: var(--gat-space-1);
-  font-size: var(--gat-font-size-sm);
-  color: var(--gat-fg-muted);
-}
-
-.gat-block__label {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--gat-space-1);
-}
-
-.gat-block__label::before {
-  content: "";
-  width: 6px;
-  height: 6px;
-  border-radius: var(--gat-radius-pill);
-  background: var(--gat-blue);
-}
-
-.gat-block__toggle {
-  margin-left: auto;
+.gat-toggle:hover {
   color: var(--gat-blue);
 }
 
-.gat-block__text {
-  display: block;
-  margin: 0;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  color: var(--gat-fg-secondary);
+.gat-toggle:focus-visible {
+  outline: none;
+  box-shadow: var(--gat-focus);
 }
 
 /* 로딩 플레이스홀더 */

@@ -216,6 +216,8 @@ interface FakeHandle extends IncomingHandle {
   updates: Partial<IncomingProps>[];
   themes: Theme[];
   unmounted: boolean;
+  /** false 로 바꾸면 Google 이 본문을 다시 그려 호스트가 사라진 상황을 흉내 낸다. */
+  attached: boolean;
 }
 
 interface FakeMounts {
@@ -239,6 +241,7 @@ function makeMounts(): FakeMounts {
       const existing = mounts.handles.get(container);
       if (existing) {
         existing.theme = theme;
+        existing.attached = true;
         if (initial) existing.update(initial);
         return existing;
       }
@@ -250,6 +253,10 @@ function makeMounts(): FakeMounts {
         updates: [],
         themes: [],
         unmounted: false,
+        attached: true,
+        isAttached() {
+          return handle.attached;
+        },
         update(props) {
           handle.props = { ...handle.props, ...props };
           handle.updates.push(props);
@@ -444,7 +451,6 @@ describe('start', () => {
     expect(mounts.handleOf(a).props.status).toBe('translated');
     expect(mounts.handleOf(a).props.translation).toBe('[ko] hello');
     expect(mounts.handleOf(d).props.status).toBe('translated');
-    expect(mounts.handleOf(a).props.hideOriginal).toBe(false);
 
     expect(outgoing.mountCalls).toContainEqual({ roomId: ROOM, enabled: true });
     expect(outgoing.restoreSentOriginals).toHaveBeenCalledWith([own]);
@@ -474,7 +480,6 @@ describe('start', () => {
     expect(mounts.statusOf(same)).toBe('pending');
     expect(mounts.mountIncoming).toHaveBeenCalledWith(ok, ok.querySelector('.body'), 'light', {
       status: 'pending',
-      hideOriginal: false,
       onRetry: expect.any(Function),
     });
 
@@ -864,27 +869,38 @@ describe('전역 스위치·키 상태', () => {
     expect(messaging.of('translate.batch').length).toBeGreaterThan(0);
   });
 
-  it('hideOriginal 변경은 붙어 있는 모든 블록에 반영된다', async () => {
+  it('본문이 다시 그려져 호스트가 사라지면 해시가 같아도 요청 없이 마지막 결과를 다시 붙인다', async () => {
     rig = makeRig();
     const { adapter, messaging, mounts } = rig;
     const a = adapter.add('a', 'hello');
-    const b = adapter.add('b', 'world');
     await rig.controller.start();
     await flush();
-
-    await messaging.invoke('settings.changed', {
-      settings: { ...DEFAULT_GLOBAL_SETTINGS, hideOriginal: true },
-      canTranslate: true,
+    expect(messaging.of('translate.batch')).toHaveLength(1);
+    expect(mounts.handleOf(a).props).toMatchObject({
+      status: 'translated',
+      translation: '[ko] hello',
     });
-    await flush();
-    expect(mounts.handleOf(a).props.hideOriginal).toBe(true);
-    expect(mounts.handleOf(b).props.hideOriginal).toBe(true);
-    expect(mounts.handleOf(a).props.status).toBe('translated');
+    const mountCalls = (mounts.mountIncoming as ReturnType<typeof vi.fn>).mock.calls.length;
 
-    const n = adapter.add('n', 'later');
-    adapter.emit([n]);
+    // 호스트가 제자리에 있으면 changed 틱에도 아무것도 하지 않는다.
+    adapter.emit([], [], [a]);
     await flush();
-    expect(mounts.handleOf(n).props.hideOriginal).toBe(true);
+    expect((mounts.mountIncoming as ReturnType<typeof vi.fn>).mock.calls.length).toBe(mountCalls);
+
+    // Google 이 본문을 다시 그려 호스트·감싸개를 지움 → 같은 해시 → 요청 없이 다시 붙인다.
+    mounts.handleOf(a).attached = false;
+    adapter.emit([], [], [a]);
+    await flush();
+    expect(messaging.of('translate.batch')).toHaveLength(1);
+    expect(messaging.of('translate.retry')).toHaveLength(0);
+    expect((mounts.mountIncoming as ReturnType<typeof vi.fn>).mock.calls.length).toBe(
+      mountCalls + 1,
+    );
+    expect(mounts.handleOf(a).attached).toBe(true);
+    expect(mounts.handleOf(a).props).toMatchObject({
+      status: 'translated',
+      translation: '[ko] hello',
+    });
   });
 
   it('대상 언어를 바꿔도 붙어 있는 번역문은 그대로 두고 새 메시지부터 새 언어로 요청한다', async () => {

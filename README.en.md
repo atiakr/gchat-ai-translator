@@ -14,7 +14,7 @@ Google Chat's built-in auto-translation is only available to paid Gemini add-on 
 - **Translate before sending**: a button next to the compose box or `Ctrl/Cmd+Shift+Enter` opens a preview where you can edit the translation and change the language; confirming sends it immediately. Your original text is shown faintly under the sent message (on this device only).
 - **Choose your provider**: OpenAI, Claude (Anthropic), or any OpenAI-compatible endpoint (Gemini, OpenRouter, local models, …). Model names are free-form.
 - **Cost guards**: batched requests, a local translation history that avoids repeat calls, a per-room auto-translation cap (default 200 messages), and skipping of very long messages (default > 2,000 characters).
-- **Fine control**: global switch, per-room off, per-room outgoing language, hide-original mode, extra translation instructions ("formal tone", "keep product names in English").
+- **Fine control**: global switch, per-room off, per-room outgoing language, in-place translation with a "See original" toggle, extra translation instructions ("formal tone", "keep product names in English").
 - **Design**: a restrained Toss-style UI, automatic light/dark matching Google Chat, Korean and English UI.
 
 ## Install (developer mode)
@@ -38,7 +38,6 @@ npm run build
 | Provider / model | OpenAI · Claude · OpenAI-compatible. Keys are stored per provider so switching is instant. |
 | Target language | Language incoming messages are translated into (default Korean) |
 | Outgoing language | Default language for translate-before-sending (default English); overridable per room |
-| Hide original | Show only the translation; click the block to reveal the original |
 | Extra instructions | Free-text instruction appended to every translation |
 | Length cap / count cap | Cost guards for auto-translation |
 | Clear translation history | Deletes translations and originals stored on this device |

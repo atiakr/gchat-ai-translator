@@ -2,48 +2,41 @@ import { t } from '../../i18n/t';
 
 export interface TranslationBlockProps {
   translation: string;
-  /** '원문 숨기기' 가 켜진 상태. 블록 클릭으로 원문을 펼치고 접는다. */
-  hideOriginal: boolean;
-  /** hideOriginal 일 때 원문이 현재 펼쳐져 있는가. */
+  /** 원문을 보고 있는가. true 면 번역문을 숨기고 토글만 남긴다. */
   originalVisible?: boolean;
   onToggleOriginal?: () => void;
 }
 
-/** translated: 원문과 구분되는 한 단계 낮은 톤의 번역 블록 + 작은 '번역됨' 라벨. */
+/**
+ * translated: 원문 자리를 대신하는 번역문(원문과 같은 글자 크기·색) + 작은 [원문보기]/[번역 보기] 글자 버튼.
+ * 원문은 mount 가 감싸 숨기거나 보인다.
+ */
 export function TranslationBlock({
   translation,
-  hideOriginal,
   originalVisible = false,
   onToggleOriginal,
 }: TranslationBlockProps) {
-  const text = <span className="gat-block__text">{translation}</span>;
-  const label = <span className="gat-block__label">{t('incoming_translatedLabel')}</span>;
-
-  if (hideOriginal && onToggleOriginal) {
-    // 원문이 숨겨진 동안 블록 전체가 펼침/접기 버튼이 된다.
-    return (
-      <button
-        type="button"
-        className="gat-block gat-block--toggle"
-        data-gat="block"
-        aria-expanded={originalVisible}
-        onClick={onToggleOriginal}
-      >
-        <span className="gat-block__head">
-          {label}
-          <span className="gat-block__toggle" data-gat="toggle">
-            {originalVisible ? t('incoming_hideOriginal') : t('incoming_showOriginal')}
-          </span>
-        </span>
-        {text}
-      </button>
-    );
-  }
-
   return (
-    <div className="gat-block" data-gat="block">
-      <span className="gat-block__head">{label}</span>
-      {text}
+    <div
+      className={originalVisible ? 'gat-translated gat-translated--original' : 'gat-translated'}
+      data-gat="block"
+    >
+      {originalVisible ? null : (
+        <span className="gat-translated__text" data-gat="translation">
+          {translation}
+        </span>
+      )}
+      {onToggleOriginal ? (
+        <button
+          type="button"
+          className="gat-toggle"
+          data-gat="toggle"
+          aria-pressed={originalVisible}
+          onClick={onToggleOriginal}
+        >
+          {originalVisible ? t('incoming_seeTranslation') : t('incoming_seeOriginal')}
+        </button>
+      ) : null}
     </div>
   );
 }

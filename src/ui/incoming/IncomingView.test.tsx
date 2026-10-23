@@ -6,7 +6,6 @@ import { IncomingView, type IncomingViewProps } from './IncomingView';
 function renderView(over: Partial<IncomingViewProps> = {}) {
   const props: IncomingViewProps = {
     status: 'pending',
-    hideOriginal: false,
     onRetry: () => {},
     ...over,
   };
@@ -23,44 +22,35 @@ describe('IncomingView', () => {
     );
   });
 
-  it('translated → 번역 블록 + "번역됨" 라벨', () => {
-    const { container } = renderView({ status: 'translated', translation: '안녕하세요' });
-    expect(container.querySelector('[data-gat="block"]')).not.toBeNull();
-    expect(screen.getByText('incoming_translatedLabel')).toBeInTheDocument();
-    expect(screen.getByText('안녕하세요')).toBeInTheDocument();
-    // 원문 숨기기가 꺼져 있으면 클릭 가능한 버튼이 아니다.
-    expect(container.querySelector('[data-gat="block"]')?.tagName).toBe('DIV');
-    expect(container.querySelector('[data-gat="toggle"]')).toBeNull();
-  });
-
-  it('translated + hideOriginal → 블록이 버튼이 되고 토글 문구가 바뀐다', () => {
+  it('translated → 번역문 + 작은 [원문보기] 토글, 누르면 [번역 보기] 로 바뀌고 번역문이 숨는다', () => {
     const onToggleOriginal = vi.fn();
     const { container, rerender } = renderView({
       status: 'translated',
-      translation: 'hi',
-      hideOriginal: true,
+      translation: '안녕하세요',
       originalVisible: false,
       onToggleOriginal,
     });
-    const block = container.querySelector('[data-gat="block"]') as HTMLElement;
-    expect(block.tagName).toBe('BUTTON');
-    expect(block.getAttribute('aria-expanded')).toBe('false');
-    expect(screen.getByText('incoming_showOriginal')).toBeInTheDocument();
-    fireEvent.click(block);
+    expect(container.querySelector('[data-gat="block"]')).not.toBeNull();
+    expect(screen.getByText('안녕하세요')).toBeInTheDocument();
+    const toggle = container.querySelector('[data-gat="toggle"]') as HTMLElement;
+    expect(toggle.tagName).toBe('BUTTON');
+    expect(toggle.textContent).toBe('incoming_seeOriginal');
+    expect(toggle.getAttribute('aria-pressed')).toBe('false');
+    fireEvent.click(toggle);
     expect(onToggleOriginal).toHaveBeenCalledTimes(1);
 
     rerender(
       <IncomingView
         status="translated"
-        translation="hi"
-        hideOriginal={true}
+        translation="안녕하세요"
         onRetry={() => {}}
         originalVisible={true}
         onToggleOriginal={onToggleOriginal}
       />,
     );
-    expect(block.getAttribute('aria-expanded')).toBe('true');
-    expect(screen.getByText('incoming_hideOriginal')).toBeInTheDocument();
+    expect(screen.queryByText('안녕하세요')).toBeNull();
+    expect(toggle.textContent).toBe('incoming_seeTranslation');
+    expect(toggle.getAttribute('aria-pressed')).toBe('true');
   });
 
   it('error → 짧은 이유 + 재시도 버튼, 클릭하면 onRetry', () => {

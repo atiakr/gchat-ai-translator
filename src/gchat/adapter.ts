@@ -5,6 +5,7 @@
  * 어떤 셀렉터가 실패해도 예외 대신 null / [] / false 를 돌려주며,
  * Google Chat 의 기본 동작(입력·전송·스크롤)을 건드리지 않는다. 페이지 전역 객체는 만지지 않는다.
  */
+import { isIncomingHost, isInjected } from '../ui/incoming/markers';
 import { type Theme, themeFromBackground } from '../ui/theme';
 import {
   ATTR,
@@ -42,7 +43,7 @@ export interface MessageInfo {
   timestampText?: string;
   /** 'dom' = data-id 를 그대로 씀, 'derived' = (방·발신자·시각·본문 해시)로 합성. */
   idSource: 'dom' | 'derived';
-  /** 본문 요소. 번역 블록은 이 요소의 다음 형제로 넣는다. */
+  /** 본문 요소. 번역 UI 는 이 요소 안, 메시지 자체의 글(`getOwnContentNodes`) 뒤에 넣는다. */
   bodyEl: HTMLElement | null;
 }
 
@@ -197,7 +198,8 @@ function fnv1a(input: string): string {
  * - 메시지 id: `data-id` 우선, 없으면 (방 id + 발신자 + 시각 텍스트 + 본문 해시)로 합성(`idSource: 'derived'`).
  * - 내 메시지: 헤딩 표시 텍스트가 `data-name` 과 다르면(= "나"/"You" 로 바뀜) 내 메시지. 단, 표시 텍스트가
  *   실제 이름으로 시작하면(봇/앱 배지 등 꼬리가 붙은 경우) 내 메시지가 아니다 — UNVERIFIED 보수 조건.
- * - 본문 없음: 본문 요소가 없거나, 이모지·공백뿐이거나, 헤딩·발신자 id 가 모두 없는(시스템 알림으로 추정,
+ * - 본문 텍스트: 인용 블록·`aria-hidden` 서브트리·확장이 끼운 호스트는 빼고, 원문 감싸개 안의 글은 그대로 읽는다.
+ * - 본문 없음: 본문 요소가 없거나, 인용만 있어 자기 글이 비었거나, 이모지·공백뿐이거나, 헤딩·발신자 id 가 모두 없는(시스템 알림으로 추정,
  *   UNVERIFIED 휴리스틱) 경우 `hasBody=false`, `text=''`.
  */
 export function readMessage(container: HTMLElement | null | undefined): MessageInfo | null {
@@ -220,7 +222,7 @@ export function readMessage(container: HTMLElement | null | undefined): MessageI
     if (!isOwn && selfUserId !== null && userId && userId === selfUserId) isOwn = true;
 
     const bodyEl = safeQuery(container, SELECTORS.messageBody);
-    let text = bodyEl ? extractText(bodyEl) : '';
+    let text = bodyEl ? extractBodyText(bodyEl) : '';
     let hasBody = bodyEl !== null;
     if (hasBody && (EMOJI_ONLY_RE.test(text) || (!heading && !senderId))) {
       text = '';
@@ -255,7 +257,46 @@ export function readMessage(container: HTMLElement | null | undefined): MessageI
   }
 }
 
-/** 번역 블록을 넣을 기준 요소(본문). 호출자는 이 요소 **뒤**에 삽입한다. */
+/** 본문의 직계 자식 중 인용 블록인가(`aria-hidden` 인용 블록 자신이거나 인용 컨테이너를 품은 것). */
+function isQuoteBlock(node: Node): boolean {
+  if (node.nodeType !== Node.ELEMENT_NODE) return false;
+  const el = node as Element;
+  return (
+    safeMatches(el, SELECTORS.quoteBlock) ||
+    safeMatches(el, SELECTORS.quoteContainer) ||
+    safeQuery(el, SELECTORS.quoteContainer) !== null
+  );
+}
+
+/** 본문 텍스트에서 통째로 뺄 요소: 화면 낭독기 전용(`aria-hidden`)·인용 컨테이너·수신 호스트. */
+function skipInBody(el: Element): boolean {
+  return (
+    isIncomingHost(el) ||
+    safeMatches(el, SELECTORS.quoteBlock) ||
+    safeMatches(el, SELECTORS.quoteContainer)
+  );
+}
+
+function extractBodyText(bodyEl: Element): string {
+  return extractText(bodyEl, { skip: skipInBody });
+}
+
+/**
+ * 메시지 자체의 글을 이루는 본문 직계 자식 노드(문서 순). 인용 블록과 확장이 끼운 요소(원문 감싸개·호스트)는
+ * 뺀다. 인자는 메시지 컨테이너 또는 본문 요소. 본문을 못 찾으면 [].
+ */
+export function getOwnContentNodes(target: HTMLElement | null | undefined): Node[] {
+  try {
+    if (!target) return [];
+    const body = isMessageContainer(target) ? safeQuery(target, SELECTORS.messageBody) : target;
+    if (!body) return [];
+    return Array.from(body.childNodes).filter((n) => !isQuoteBlock(n) && !isInjected(n));
+  } catch {
+    return [];
+  }
+}
+
+/** 번역 UI 를 넣을 기준 요소(본문). 호출자는 이 요소 **안**, 메시지 자체의 글 뒤에 넣는다. */
 export function getTranslationAnchor(
   container: HTMLElement | null | undefined,
 ): HTMLElement | null {
@@ -294,7 +335,8 @@ function containersWithin(node: Node): HTMLElement[] {
 /**
  * `document.body`(또는 `root`) 에 MutationObserver 하나를 달아 컨테이너 추가·제거와
  * 본문 서브트리 변경(수정 감지용)을 묶어서 알린다. 반환값은 해제 함수.
- * 같은 틱의 변경은 한 번에 전달되고, 본문 바깥(번역 블록 삽입 위치 등) 변경은 무시한다.
+ * 같은 틱의 변경은 한 번에 전달되고, 본문 바깥 변경과 확장이 끼운 요소(호스트·원문 감싸개)의
+ * 삽입·제거·이동은 무시한다(`mutateUnobserved` 로 한 조작은 레코드 자체가 버려진다).
  */
 export function observeMessages(cb: MessageObserverCallback, root?: Node | null): () => void {
   const target = root ?? (typeof document !== 'undefined' ? document.body : null);
@@ -339,7 +381,12 @@ export function observeMessages(cb: MessageObserverCallback, root?: Node | null)
           continue;
         }
         if (record.type !== 'childList') continue;
+        // 확장이 끼운 호스트·원문 감싸개의 삽입·제거, 감싸개 안으로의 이동은 변화가 아니다(되먹임 방지).
+        if (isInjected(record.target)) continue;
+        let foreign = 0;
         for (const node of Array.from(record.addedNodes)) {
+          if (isInjected(node)) continue;
+          foreign += 1;
           const found = containersWithin(node);
           if (found.length > 0) {
             for (const c of found) added.add(c);
@@ -349,8 +396,11 @@ export function observeMessages(cb: MessageObserverCallback, root?: Node | null)
           if (c) changed.add(c);
         }
         for (const node of Array.from(record.removedNodes)) {
+          if (isInjected(node)) continue;
+          foreign += 1;
           for (const c of containersWithin(node)) removed.add(c);
         }
+        if (foreign === 0) continue;
         const targetContainer = containerOfBodyNode(record.target);
         if (targetContainer) changed.add(targetContainer);
       }
@@ -367,14 +417,53 @@ export function observeMessages(cb: MessageObserverCallback, root?: Node | null)
   } catch {
     return () => {};
   }
+  const live: LiveObserver = { observer, handle };
+  liveObservers.add(live);
   return () => {
     active = false;
+    liveObservers.delete(live);
     try {
       observer.disconnect();
     } catch {
       // 이미 해제됨
     }
   };
+}
+
+interface LiveObserver {
+  observer: MutationObserver;
+  handle: (records: MutationRecord[]) => void;
+}
+
+const liveObservers = new Set<LiveObserver>();
+
+/**
+ * 확장 자신의 DOM 조작(원문 감싸기·되돌리기, 호스트 이동)을 관찰에서 뺀 채 실행한다. 그 전까지 쌓인
+ * 레코드(Google Chat 의 변화)는 평소처럼 처리하고, `fn` 이 만든 레코드만 버린다. JS 는 한 줄로 돌므로
+ * 그 사이에 다른 변화가 끼지 않는다. `fn` 의 예외는 밖으로 내보내지 않는다.
+ */
+export function mutateUnobserved(fn: () => void): void {
+  for (const live of liveObservers) {
+    try {
+      const pending = live.observer.takeRecords();
+      if (pending.length > 0) live.handle(pending);
+    } catch {
+      // 관찰자 오류는 무시
+    }
+  }
+  try {
+    fn();
+  } catch (error) {
+    console.error('[gchat-adapter] unobserved mutation failed', error);
+  } finally {
+    for (const live of liveObservers) {
+      try {
+        live.observer.takeRecords();
+      } catch {
+        // 관찰자 오류는 무시
+      }
+    }
+  }
 }
 
 /** 추가된 노드가 본문 요소를 품을 때(본문 교체 재렌더) 그 컨테이너. */

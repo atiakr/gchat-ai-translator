@@ -9,12 +9,14 @@ import {
   getChatTheme,
   getCurrentRoom,
   getMessageRoomId,
+  getOwnContentNodes,
   getSelfUserId,
   getTranslationAnchor,
   isComposerEmpty,
   isConversationView,
   listComposers,
   listMessageContainers,
+  mutateUnobserved,
   observeMessages,
   readComposerText,
   readMessage,
@@ -202,6 +204,78 @@ describe('messages', () => {
   });
 });
 
+describe('quoted messages', () => {
+  const OWN = 'Hi Henry, apologies our internet was unstable earlier but it is all fixed now';
+  const LABELS = [
+    '인용됨',
+    '발신자',
+    '인용 종료',
+    '인용된 원본 메시지로 링크를 걸려면 L 키를 누르세요.',
+  ];
+
+  it('인용 메시지는 메시지 자체의 글만 읽고 인용 원문·숨은 낭독 글자는 뺀다', () => {
+    loadFixture('quote-message.html');
+    const m = readMessage(container('8SgFAKE0301'));
+    expect(m?.hasBody).toBe(true);
+    expect(m?.text).toBe(OWN);
+    for (const label of LABELS) expect(m?.text).not.toContain(label);
+    expect(m?.text).not.toContain('documentation');
+  });
+
+  it('인용만 있는 메시지는 본문 없음', () => {
+    loadFixture('quote-message.html');
+    const c = container('8SgFAKE0301');
+    const body = c.querySelector('[jsname="bgckF"]') as HTMLElement;
+    for (const n of getOwnContentNodes(c)) body.removeChild(n);
+    const m = readMessage(c);
+    expect(m?.hasBody).toBe(false);
+    expect(m?.text).toBe('');
+  });
+
+  it('본문 안의 aria-hidden 서브트리는 인용이 아니어도 뺀다', () => {
+    loadFixture('dm-messages.html');
+    const c = container('6SgFAKE0101');
+    c.querySelector('[jsname="bgckF"]')?.insertAdjacentHTML(
+      'beforeend',
+      '<span aria-hidden="true">숨은 글자</span>',
+    );
+    expect(readMessage(c)?.text).toBe('Hello, can you check this today?');
+  });
+
+  it('getOwnContentNodes: 인용 블록과 확장이 끼운 요소를 뺀 본문 직계 자식', () => {
+    loadFixture('quote-message.html');
+    const c = container('8SgFAKE0301');
+    const body = c.querySelector('[jsname="bgckF"]') as HTMLElement;
+    const own = getOwnContentNodes(c);
+    expect(own).toHaveLength(2);
+    expect(own[0]?.nodeType).toBe(Node.TEXT_NODE);
+    expect(own[0]?.textContent).toBe(OWN);
+    expect(getOwnContentNodes(body)).toEqual(own);
+    const host = document.createElement('gat-incoming');
+    host.setAttribute('data-gat-incoming', '');
+    body.appendChild(host);
+    expect(getOwnContentNodes(c)).toEqual(own);
+    expect(getOwnContentNodes(null)).toEqual([]);
+  });
+
+  it('원문 감싸개 안의 글은 그대로 읽고 수신 호스트는 무시한다(해시가 바뀌지 않는다)', () => {
+    loadFixture('quote-message.html');
+    const c = container('8SgFAKE0301');
+    const body = c.querySelector('[jsname="bgckF"]') as HTMLElement;
+    const own = getOwnContentNodes(c);
+    const span = document.createElement('span');
+    span.setAttribute('data-gat-original', '');
+    span.hidden = true;
+    body.insertBefore(span, own[0] ?? null);
+    for (const n of own) span.appendChild(n);
+    const host = document.createElement('gat-incoming');
+    host.setAttribute('data-gat-incoming', '');
+    host.textContent = '번역문';
+    span.after(host);
+    expect(readMessage(c)?.text).toBe(OWN);
+  });
+});
+
 describe('observeMessages', () => {
   it('컨테이너 추가는 added, 본문 변경은 changed, 제거는 removed 로 알린다', async () => {
     loadFixture('dm-messages.html');
@@ -236,6 +310,30 @@ describe('observeMessages', () => {
 
     // 본문 바깥(번역 블록 삽입 위치) 변경은 changed 가 아니다
     body.insertAdjacentHTML('afterend', '<div class="translation">번역</div>');
+    await flush();
+    expect(cb).toHaveBeenCalledTimes(3);
+
+    // 본문 안에 확장 요소(호스트·원문 감싸개)를 넣고 빼는 것은 changed 가 아니다
+    const host = document.createElement('gat-incoming');
+    host.setAttribute('data-gat-incoming', '');
+    body.appendChild(host);
+    const wrap = document.createElement('span');
+    wrap.setAttribute('data-gat-original', '');
+    body.insertBefore(wrap, body.firstChild);
+    await flush();
+    host.remove();
+    wrap.remove();
+    await flush();
+    expect(cb).toHaveBeenCalledTimes(3);
+
+    // mutateUnobserved 안의 조작(노드 이동 포함)은 보고되지 않는다
+    mutateUnobserved(() => {
+      const span = document.createElement('span');
+      span.setAttribute('data-gat-original', '');
+      body.insertBefore(span, body.firstChild);
+      while (span.nextSibling) span.appendChild(span.nextSibling);
+      span.replaceWith(...Array.from(span.childNodes));
+    });
     await flush();
     expect(cb).toHaveBeenCalledTimes(3);
 

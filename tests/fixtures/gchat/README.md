@@ -17,7 +17,7 @@
   (표시 텍스트가 "나"/"You") 내 메시지** — 로케일에 의존하지 않는 규칙. 보조로 그 컨테이너의
   `data-user-id` 를 "내 id" 로 기억해 비교한다.
 - 본문: 컨테이너 안 `div[jsname="bgckF"]` (클래스 `Zc1Emd` 와 같은 요소). 이미지 전용 메시지는 이
-  요소가 없다(75/76). 링크는 본문 안 `a[target="_blank"]`. 번역 블록은 본문 요소 **바로 뒤 형제**로 넣는다.
+  요소가 없다(75/76). 링크는 본문 안 `a[target="_blank"]`. 번역 UI 는 본문 요소 **안**, 메시지 자체의 글 뒤에 넣는다(번역 중에는 그 글을 감싸 숨긴다).
 - 시각: `span[jsname="E53oB"][data-absolute-timestamp]`(ms epoch).
 - 입력창: `div[role="textbox"][contenteditable="true"][jsname="yrriRe"]`(비었을 때 `<div><br></div>`).
   보내기 버튼: `button[jsname="GBTyxb"]`(aria-label "메시지 보내기"). 둘의 공통 조상: `div[jsname="SFaVIf"]`,
@@ -27,4 +27,5 @@
 - 인용 메시지(`quote-message.html`): 본문 요소 안 첫 자식이 인용 블록 `div[aria-hidden="true"]`(클래스 `wVNE5`)이고,
   그 안에 인용된 원문(`div[jsname="Yj53ue"]`)과 화면 낭독기용 숨은 글자("인용됨", "발신자", "인용 종료",
   "인용된 원본 메시지로 링크를 걸려면 L 키를 누르세요.")가 있다. 메시지 자체의 글은 인용 블록 **뒤의 텍스트 노드**다.
-  인용 컨테이너에는 `[jsname="jJpMGe"][data-inside-message-stream]` 이 있다.
+  인용 컨테이너에는 `[jsname="jJpMGe"][data-inside-message-stream]` 이 있다. 본문 텍스트·번역 대상은 메시지 자체의 글뿐이고
+  인용 블록은 그대로 둔다.

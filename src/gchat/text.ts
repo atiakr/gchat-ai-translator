@@ -49,7 +49,12 @@ interface Segment {
 /** 줄 단위로 조각을 모은다. `null` 은 줄 경계(새 줄 시작). */
 type Line = Segment[];
 
-function collect(node: Node, lines: Line[], inPre: boolean): void {
+export interface ExtractOptions {
+  /** true 를 돌려주는 요소는 서브트리째 건너뛴다(인용 블록·화면 낭독기용 글자·확장이 끼운 호스트 등). */
+  skip?: (el: Element) => boolean;
+}
+
+function collect(node: Node, lines: Line[], inPre: boolean, skip?: (el: Element) => boolean): void {
   if (node.nodeType === Node.TEXT_NODE) {
     const raw = node.nodeValue ?? '';
     if (!raw) return;
@@ -68,6 +73,7 @@ function collect(node: Node, lines: Line[], inPre: boolean): void {
   const el = node as Element;
   const tag = el.tagName.toUpperCase();
   if (SKIP_TAGS.has(tag)) return;
+  if (skip?.(el)) return;
   if (tag === 'BR') {
     lines.push([]);
     return;
@@ -75,7 +81,7 @@ function collect(node: Node, lines: Line[], inPre: boolean): void {
   const block = BLOCK_TAGS.has(tag);
   if (block && lastLine(lines).length > 0) lines.push([]);
   const childPre = inPre || tag === 'PRE';
-  for (const child of Array.from(el.childNodes)) collect(child, lines, childPre);
+  for (const child of Array.from(el.childNodes)) collect(child, lines, childPre, skip);
   if (block && lastLine(lines).length > 0) lines.push([]);
 }
 
@@ -96,14 +102,16 @@ function renderLine(line: Line): string {
 }
 
 /**
- * 요소의 평문. 빈 요소·null 은 빈 문자열. 결과는 앞뒤 빈 줄이 없고 연속 빈 줄은 최대 하나다.
+ * 요소의 평문. 빈 요소·null 은 빈 문자열. `options.skip` 이 참인 자손 요소는 통째로 뺀다. 결과는 앞뒤 빈 줄이 없고 연속 빈 줄은 최대 하나다.
  * 어떤 입력에도 던지지 않는다.
  */
-export function extractText(el: Element | null | undefined): string {
+export function extractText(el: Element | null | undefined, options: ExtractOptions = {}): string {
   if (!el) return '';
   try {
     const lines: Line[] = [[]];
-    collect(el, lines, false);
+    const { skip } = options;
+    // skip 은 자손에만 적용한다(루트 자신은 항상 읽는다).
+    collect(el, lines, false, skip ? (e) => e !== el && skip(e) : undefined);
     const rendered = lines.map(renderLine);
     const out: string[] = [];
     for (const line of rendered) {

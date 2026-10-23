@@ -8,6 +8,12 @@ function el(html: string): HTMLElement {
 }
 
 describe('extractText', () => {
+  it('skip 이 참인 자손 요소는 서브트리째 빼고 루트에는 적용하지 않는다', () => {
+    const root = el('<div class="q">quoted <b>x</b></div>own <span>text</span>');
+    const skip = (e: Element) => e.classList.contains('q') || e === root;
+    expect(extractText(root, { skip })).toBe('own text');
+  });
+
   it('일반 텍스트의 앞뒤 공백·빈 span 을 정리한다', () => {
     expect(extractText(el('Hello, can you check this today? <span></span>'))).toBe(
       'Hello, can you check this today?',

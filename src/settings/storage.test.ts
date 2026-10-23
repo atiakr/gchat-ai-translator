@@ -30,7 +30,6 @@ describe('migrateGlobalSettings', () => {
       activeProvider: 'openai',
       targetLang: 'ko',
       outgoingLang: 'en',
-      hideOriginal: false,
       instructions: '',
       customBaseUrl: '',
       maxMessageChars: 2000,
@@ -49,7 +48,13 @@ describe('migrateGlobalSettings', () => {
     expect(out.activeProvider).toBe('openai');
     expect(out.targetLang).toBe('ja');
     expect(out.maxAutoPerRoom).toBe(200);
-    expect(out.version).toBe(1);
+    expect(out.version).toBe(2);
+  });
+  it('v1 → v2: 원문 숨기기(hideOriginal) 필드를 버리고 나머지는 유지한다', () => {
+    const out = migrateGlobalSettings({ version: 1, hideOriginal: true, targetLang: 'ja' });
+    expect(out.version).toBe(2);
+    expect(out.targetLang).toBe('ja');
+    expect('hideOriginal' in out).toBe(false);
   });
 });
 
@@ -69,7 +74,7 @@ describe('storage 영역 규칙', () => {
     const s = await getGlobalSettings();
     expect(s.targetLang).toBe('ja');
     expect(s.enabled).toBe(false);
-    expect(s.version).toBe(1);
+    expect(s.version).toBe(2);
   });
   it('방별 설정은 방마다 sync 항목 하나(room:<id>)', async () => {
     await setRoomSettings('room/AAA', { incomingDisabled: true, name: 'Alpha' });

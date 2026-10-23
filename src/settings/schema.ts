@@ -2,7 +2,7 @@ import { DEFAULTS, type ProviderId } from '../config/defaults';
 import type { ErrorKind } from '../engine/types';
 
 /** 설정 스키마 버전. 구조가 바뀌면 올리고 migrate.ts 에 마이그레이션을 추가한다. */
-export const SETTINGS_VERSION = 1;
+export const SETTINGS_VERSION = 2;
 
 export const PROVIDER_IDS: readonly ProviderId[] = ['openai', 'anthropic', 'openai_compatible'];
 
@@ -16,7 +16,6 @@ export interface GlobalSettings {
   customBaseUrl: string;
   targetLang: string;
   outgoingLang: string;
-  hideOriginal: boolean;
   instructions: string;
   maxMessageChars: number;
   maxAutoPerRoom: number;
@@ -30,7 +29,6 @@ export const DEFAULT_GLOBAL_SETTINGS: GlobalSettings = {
   customBaseUrl: '',
   targetLang: DEFAULTS.targetLang,
   outgoingLang: DEFAULTS.outgoingLang,
-  hideOriginal: false,
   instructions: '',
   maxMessageChars: DEFAULTS.maxMessageChars,
   maxAutoPerRoom: DEFAULTS.maxAutoPerRoom,

@@ -4,7 +4,6 @@ import type { GlobalSettings } from '../../settings/schema';
 import { Card } from '../common/Card';
 import { Field } from '../common/Field';
 import { Select } from '../common/Select';
-import { Toggle } from '../common/Toggle';
 import { languageOptions } from './options';
 import { useDraft } from './useDraft';
 
@@ -37,17 +36,6 @@ export function LanguageSection({ settings, updateSettings }: LanguageSectionPro
           onChange={(outgoingLang) => updateSettings({ outgoingLang })}
         />
       </Field>
-      <div className="gat-row gat-row--between">
-        <div>
-          <div className="gat-field__label">{t('options_hideOriginal')}</div>
-          <p className="gat-field__help">{t('options_hideOriginalHelp')}</p>
-        </div>
-        <Toggle
-          ariaLabel={t('options_hideOriginal')}
-          checked={settings.hideOriginal}
-          onChange={(hideOriginal) => updateSettings({ hideOriginal })}
-        />
-      </div>
       <Field
         htmlFor={`${ids}-instructions`}
         label={t('options_instructions')}

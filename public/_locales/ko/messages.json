@@ -80,9 +80,6 @@
   "common_loading": {
     "message": "번역 중…"
   },
-  "incoming_translatedLabel": {
-    "message": "번역됨"
-  },
   "incoming_loading": {
     "message": "번역 중…"
   },
@@ -113,11 +110,11 @@
   "incoming_skippedLimit": {
     "message": "오래된 메시지라 건너뜀"
   },
-  "incoming_showOriginal": {
-    "message": "원문 보기"
+  "incoming_seeOriginal": {
+    "message": "원문보기"
   },
-  "incoming_hideOriginal": {
-    "message": "원문 숨기기"
+  "incoming_seeTranslation": {
+    "message": "번역 보기"
   },
   "outgoing_buttonTitle": {
     "message": "보내기 전 번역 (Ctrl/⌘+Shift+Enter)"
@@ -284,12 +281,6 @@
   },
   "options_outgoingLang": {
     "message": "발신 언어 기본값"
-  },
-  "options_hideOriginal": {
-    "message": "원문 숨기기"
-  },
-  "options_hideOriginalHelp": {
-    "message": "번역문만 보이고 원문은 접어 둡니다."
   },
   "options_instructions": {
     "message": "추가 지시문"

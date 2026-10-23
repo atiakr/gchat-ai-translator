@@ -42,8 +42,16 @@ export const SELECTORS = {
   messageContainer: 'div[role="group"][data-id]',
   /** 컨테이너 안 발신자 헤딩. 표시 텍스트 ≠ data-name 이면 내 메시지. 확인 2026-10-23, 실제 화면(76/76). */
   senderHeading: 'span[role="heading"][data-message-id][data-name][data-member-id]',
-  /** 컨테이너 안 본문(클래스 `Zc1Emd` 와 같은 요소). 이미지·파일 전용 메시지엔 없다. 번역 블록은 이 요소의 다음 형제. 확인 2026-10-23, 실제 화면(75/76). */
+  /** 컨테이너 안 본문(클래스 `Zc1Emd` 와 같은 요소). 이미지·파일 전용 메시지엔 없다. 번역 UI 는 이 요소 안, 메시지 자체의 글 뒤에 넣는다. 확인 2026-10-23, 실제 화면(75/76). */
   messageBody: 'div[jsname="bgckF"]',
+  /**
+   * 본문 안 인용 블록(클래스 `wVNE5`, 본문의 첫 자식). 인용된 원문과 화면 낭독기용 숨은 글자("인용됨"·"발신자"·
+   * "인용 종료"·"L 키" 안내)를 품는다. 본문 안의 `aria-hidden="true"` 서브트리는 인용 블록이 아니어도 본문 텍스트에서
+   * 뺀다. 확인 2026-10-23, 실제 화면(한국어 로케일). 샘플: quote-message.html
+   */
+  quoteBlock: '[aria-hidden="true"]',
+  /** 인용 컨테이너. 이것을 품은 본문의 직계 자식이 인용 블록이다. 확인 2026-10-23, 실제 화면(한국어 로케일). */
+  quoteContainer: '[jsname="jJpMGe"][data-inside-message-stream]',
   /** 본문 안 링크. 확인 2026-10-23, 실제 화면. */
   bodyLink: 'a[target="_blank"]',
   /** 컨테이너 안 시각 표시(epoch ms 속성 포함). 확인 2026-10-23, 실제 화면. */

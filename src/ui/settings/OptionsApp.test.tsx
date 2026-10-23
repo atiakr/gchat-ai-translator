@@ -25,6 +25,9 @@ describe('options App', () => {
     ]) {
       expect(screen.getByText(key)).toBeInTheDocument();
     }
+    // 원문 숨기기 설정은 없어졌다(번역문은 항상 원문 자리를 대신한다).
+    expect(screen.queryByText('options_hideOriginal')).toBeNull();
+    expect(screen.queryByLabelText('options_hideOriginal')).toBeNull();
     expect(screen.queryByText('options_invalidKeyBanner')).toBeNull();
     expect(screen.queryByText('options_brokenBanner')).toBeNull();
     expect(document.documentElement.dataset.theme).toBe('light');
