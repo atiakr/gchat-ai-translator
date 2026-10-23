@@ -701,6 +701,27 @@ describe('전역 스위치·키 상태', () => {
     expect(mounts.handles.size).toBe(0);
   });
 
+  it('settings.get 이 한 번 실패하면 잠시 뒤 다시 물어 복구한다', async () => {
+    const messaging = makeMessaging();
+    const original = messaging.send;
+    let failures = 1;
+    messaging.send = (async (kind: MessageKind, payload: unknown) => {
+      if (kind === 'settings.get' && failures > 0) {
+        failures -= 1;
+        throw new Error('disconnected');
+      }
+      return (original as (k: MessageKind, p: unknown) => Promise<unknown>)(kind, payload);
+    }) as ContentDeps['sendMessage'];
+    rig = buildRig({ messaging });
+    rig.adapter.add('a', 'hello');
+    await rig.controller.start();
+    await flush();
+    expect(messaging.of('translate.batch')).toHaveLength(0);
+    await vi.advanceTimersByTimeAsync(2000);
+    await flush();
+    expect(messaging.of('translate.batch').length).toBeGreaterThan(0);
+  });
+
   it('hideOriginal 변경은 붙어 있는 모든 블록에 반영된다', async () => {
     rig = makeRig();
     const { adapter, messaging, mounts } = rig;

@@ -666,6 +666,10 @@ export function createContentController(overrides: Partial<ContentDeps> = {}): C
     if (prevHide !== (next.hideOriginal === true)) updateHideOriginal();
   }
 
+  let settingsRetries = 0;
+  const SETTINGS_RETRY_MAX = 3;
+  const SETTINGS_RETRY_MS = 2000;
+
   async function loadSettings(): Promise<void> {
     try {
       const response = await deps.sendMessage('settings.get', {});
@@ -677,9 +681,16 @@ export function createContentController(overrides: Partial<ContentDeps> = {}): C
     } catch (error) {
       warn('settings.get', error);
     }
-    // 설정을 못 받으면 꺼진 것으로 둔다. settings.changed 브로드캐스트가 오면 복구된다.
+    // 설정을 못 받으면 꺼진 것으로 두고(불변식 5), 잠시 뒤 몇 번 다시 묻는다(service worker 기동 지연 대비).
+    // settings.changed 브로드캐스트가 오면 그 전에라도 복구된다.
     settings = null;
     canTranslate = false;
+    if (!stopped && settingsRetries < SETTINGS_RETRY_MAX) {
+      settingsRetries += 1;
+      deps.setTimeout(() => {
+        if (!stopped && settings === null) void loadSettings();
+      }, SETTINGS_RETRY_MS);
+    }
   }
 
   /* ---------------------------------------------------------------- */

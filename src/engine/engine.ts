@@ -19,7 +19,6 @@ import {
   type ProviderConfig,
   ProviderError,
   type TranslateItemResult,
-  type TranslateRequest,
   type TranslationProvider,
 } from './types';
 
