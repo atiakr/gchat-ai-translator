@@ -79,5 +79,14 @@
   },
   "common_loading": {
     "message": "번역 중…"
+  },
+  "bg_badgeNoKey": {
+    "message": "API 키가 없습니다. 설정에서 키를 입력하세요."
+  },
+  "bg_badgeInvalidKey": {
+    "message": "API 키가 올바르지 않습니다. 설정에서 키를 확인하세요."
+  },
+  "bg_badgeBroken": {
+    "message": "Google Chat 화면을 읽지 못했습니다. 확장 업데이트가 필요할 수 있습니다."
   }
 }

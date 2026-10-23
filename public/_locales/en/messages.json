@@ -79,5 +79,14 @@
   },
   "common_loading": {
     "message": "Translating…"
+  },
+  "bg_badgeNoKey": {
+    "message": "No API key. Enter a key in the settings."
+  },
+  "bg_badgeInvalidKey": {
+    "message": "The API key is invalid. Check the key in the settings."
+  },
+  "bg_badgeBroken": {
+    "message": "Could not read the Google Chat page. The extension may need an update."
   }
 }
