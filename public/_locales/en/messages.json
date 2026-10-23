@@ -79,5 +79,59 @@
   },
   "common_loading": {
     "message": "Translating…"
+  },
+  "outgoing_buttonTitle": {
+    "message": "Translate before sending (Ctrl/⌘+Shift+Enter)"
+  },
+  "outgoing_panelTitle": {
+    "message": "Translate before sending"
+  },
+  "outgoing_original": {
+    "message": "Original"
+  },
+  "outgoing_translation": {
+    "message": "Translation"
+  },
+  "outgoing_language": {
+    "message": "Send in"
+  },
+  "outgoing_saveAsDefault": {
+    "message": "Save as this room's default language"
+  },
+  "outgoing_translating": {
+    "message": "Translating…"
+  },
+  "outgoing_translationPlaceholder": {
+    "message": "The translation appears here. You can edit it."
+  },
+  "outgoing_richWarning": {
+    "message": "Mentions and formatting are dropped from the translation (attachments are kept)"
+  },
+  "outgoing_sendFailed": {
+    "message": "Could not send. Press Enter in the composer to send the translation yourself."
+  },
+  "outgoing_close": {
+    "message": "Close"
+  },
+  "outgoing_error_auth": {
+    "message": "The API key is not valid. Check the key in settings."
+  },
+  "outgoing_error_rate_limit": {
+    "message": "Too many requests. Try again in a moment."
+  },
+  "outgoing_error_server": {
+    "message": "The translation service had a problem. Try again."
+  },
+  "outgoing_error_bad_request": {
+    "message": "The request could not be processed. Check the model settings."
+  },
+  "outgoing_error_parse": {
+    "message": "The translation could not be read. Try again."
+  },
+  "outgoing_error_unknown": {
+    "message": "The translation request failed. Try again."
+  },
+  "outgoing_myOriginal": {
+    "message": "My original"
   }
 }

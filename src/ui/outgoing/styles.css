@@ -1,0 +1,300 @@
+/*
+ * 발신 번역 UI (토스 스타일).
+ * 색·간격·그림자는 tokens.css 의 변수만 쓴다.
+ */
+.gat-root {
+  font-family: var(--gat-font);
+  font-size: var(--gat-font-size);
+  line-height: var(--gat-line);
+  color: var(--gat-fg);
+  -webkit-font-smoothing: antialiased;
+}
+
+.gat-root *,
+.gat-root *::before,
+.gat-root *::after {
+  box-sizing: border-box;
+}
+
+/* ---------- 번역 버튼 (입력창 옆) ---------- */
+.gat-translate-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  margin: 0 var(--gat-space-1);
+  padding: 0;
+  border: 0;
+  border-radius: var(--gat-radius-pill);
+  background: transparent;
+  color: var(--gat-fg-secondary);
+  cursor: pointer;
+  transition:
+    background-color 120ms ease,
+    color 120ms ease;
+}
+
+.gat-translate-btn:hover {
+  background: var(--gat-blue-soft);
+  color: var(--gat-blue);
+}
+
+.gat-translate-btn:active {
+  color: var(--gat-blue-strong);
+}
+
+.gat-translate-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--gat-focus);
+}
+
+.gat-translate-btn svg {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+}
+
+/* ---------- 미리보기 패널 (입력창 위) ---------- */
+.gat-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gat-space-3);
+  width: 100%;
+  max-height: min(70vh, 560px);
+  padding: var(--gat-space-4);
+  border: 1px solid var(--gat-border);
+  border-radius: var(--gat-radius);
+  background: var(--gat-bg-elevated);
+  box-shadow: var(--gat-shadow);
+  overflow: auto;
+}
+
+.gat-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gat-space-2);
+}
+
+.gat-panel__title {
+  margin: 0;
+  font-size: var(--gat-font-size-lg);
+  font-weight: 700;
+  color: var(--gat-fg);
+}
+
+.gat-panel__status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gat-space-1);
+  font-size: var(--gat-font-size-sm);
+  color: var(--gat-fg-muted);
+}
+
+.gat-spinner {
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--gat-border);
+  border-top-color: var(--gat-blue);
+  border-radius: 50%;
+  animation: gat-spin 800ms linear infinite;
+}
+
+@keyframes gat-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.gat-banner {
+  padding: var(--gat-space-2) var(--gat-space-3);
+  border-radius: var(--gat-radius-sm);
+  font-size: var(--gat-font-size-sm);
+}
+
+.gat-banner--warn {
+  background: var(--gat-warn-soft);
+  color: var(--gat-fg);
+}
+
+.gat-banner--danger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gat-space-2);
+  background: var(--gat-danger-soft);
+  color: var(--gat-danger);
+}
+
+.gat-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gat-space-1);
+}
+
+.gat-field__label {
+  font-size: var(--gat-font-size-sm);
+  font-weight: 600;
+  color: var(--gat-fg-secondary);
+}
+
+.gat-original {
+  margin: 0;
+  padding: var(--gat-space-2) var(--gat-space-3);
+  border-radius: var(--gat-radius-sm);
+  background: var(--gat-bg-subtle);
+  color: var(--gat-fg-secondary);
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 120px;
+  overflow: auto;
+}
+
+.gat-textarea {
+  width: 100%;
+  min-height: 84px;
+  padding: var(--gat-space-2) var(--gat-space-3);
+  border: 1px solid var(--gat-border);
+  border-radius: var(--gat-radius-sm);
+  background: var(--gat-bg);
+  color: var(--gat-fg);
+  font: inherit;
+  resize: vertical;
+  transition: box-shadow 120ms ease;
+}
+
+.gat-textarea::placeholder {
+  color: var(--gat-fg-muted);
+}
+
+.gat-textarea:focus {
+  outline: none;
+  border-color: var(--gat-blue);
+  box-shadow: var(--gat-focus);
+}
+
+.gat-textarea:disabled {
+  color: var(--gat-fg-muted);
+  background: var(--gat-bg-subtle);
+}
+
+.gat-panel__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gat-space-3);
+}
+
+.gat-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gat-space-2);
+  font-size: var(--gat-font-size-sm);
+  color: var(--gat-fg-secondary);
+}
+
+.gat-select {
+  padding: 6px var(--gat-space-2);
+  border: 1px solid var(--gat-border);
+  border-radius: var(--gat-radius-sm);
+  background: var(--gat-bg);
+  color: var(--gat-fg);
+  font: inherit;
+  font-size: var(--gat-font-size-sm);
+}
+
+.gat-select:focus-visible {
+  outline: none;
+  border-color: var(--gat-blue);
+  box-shadow: var(--gat-focus);
+}
+
+.gat-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gat-space-1);
+  cursor: pointer;
+  user-select: none;
+}
+
+.gat-checkbox input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--gat-blue);
+}
+
+.gat-panel__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--gat-space-2);
+}
+
+.gat-btn {
+  padding: var(--gat-space-2) var(--gat-space-4);
+  border: 0;
+  border-radius: var(--gat-radius-sm);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color 120ms ease,
+    color 120ms ease,
+    opacity 120ms ease;
+}
+
+.gat-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--gat-focus);
+}
+
+.gat-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.gat-btn--primary {
+  background: var(--gat-blue);
+  color: #ffffff;
+}
+
+.gat-btn--primary:not(:disabled):hover {
+  background: var(--gat-blue-strong);
+}
+
+.gat-btn--ghost {
+  background: var(--gat-bg-subtle);
+  color: var(--gat-fg-secondary);
+}
+
+.gat-btn--ghost:not(:disabled):hover {
+  color: var(--gat-fg);
+}
+
+.gat-btn--sm {
+  padding: var(--gat-space-1) var(--gat-space-3);
+  font-size: var(--gat-font-size-sm);
+}
+
+/* ---------- 내 원문 (보낸 메시지 아래) ---------- */
+.gat-sent-original {
+  display: flex;
+  align-items: baseline;
+  gap: var(--gat-space-2);
+  margin-top: var(--gat-space-1);
+  font-size: var(--gat-font-size-sm);
+  color: var(--gat-fg-muted);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.gat-sent-original__label {
+  flex: none;
+  font-weight: 600;
+}
+
+.gat-sent-original__text {
+  min-width: 0;
+}
