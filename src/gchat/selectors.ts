@@ -56,9 +56,12 @@ export const SELECTORS = {
   composerTextbox: 'div[role="textbox"][contenteditable="true"][jsname="yrriRe"]',
   /** 보내기 버튼. aria-label 은 로케일 의존("메시지 보내기")이라 쓰지 않는다. 확인 2026-10-23, 실제 화면. */
   sendButton: 'button[jsname="GBTyxb"]',
-  /** 사이드바 대화방 항목(방 이름은 best effort). 확인 2026-10-23, 실제 화면. */
+  /**
+   * 사이드바 대화방 항목 — **부분 확인**. 2026-10-23 실제 화면에서 `span[role="listitem"][data-group-id]` 요소의
+   * 존재는 확인했으나 그 안의 이름 요소 구조는 확인하지 못했다(best effort; 못 찾으면 이름 없음).
+   */
   sidebarRoomItem: 'span[role="listitem"][data-group-id]',
-  /** 사이드바 항목 안 이름 후보. 확인 2026-10-23, 실제 화면(속성 존재만 확인; 항상 있다는 보장은 없음). */
+  /** 사이드바 항목 안 이름 후보 — **미확인(UNVERIFIED)**. 속성이 없으면 이름 없음으로 본다. */
   displayName: '[data-name]',
   /**
    * 작성 영역 안 첨부 칩 후보 — **미확인(UNVERIFIED)**. 2026-10-23 실제 화면에선 첨부 상태를 캡처하지
@@ -69,10 +72,14 @@ export const SELECTORS = {
 
 export type SelectorKey = keyof typeof SELECTORS;
 
-/** 입력창 안에서 "순수 텍스트 래퍼" 로 보는 태그. 그 밖의 요소는 멘션 칩 등 리치 콘텐츠로 본다. */
+/**
+ * 입력창 안에서 "순수 텍스트 래퍼" 로 보는 태그 — **미확인(UNVERIFIED)**. 2026-10-23 실제 화면에선 빈 입력창
+ * (`<div><br></div>`)만 확인했고 멘션 칩·서식의 실제 마크업은 캡처하지 못했다. 그 밖의 요소는 보수적으로
+ * 멘션 칩 등 리치 콘텐츠로 본다(경고만 띄우므로 오판해도 동작은 깨지지 않는다).
+ */
 export const COMPOSER_PLAIN_TAGS: ReadonlySet<string> = new Set(['DIV', 'BR', 'SPAN']);
 
-/** 입력창 안 서식 태그. */
+/** 입력창 안 서식 태그 — **미확인(UNVERIFIED)**, 일반적인 contenteditable 서식 태그 기준. */
 export const COMPOSER_FORMATTING_TAGS: ReadonlySet<string> = new Set([
   'B',
   'I',

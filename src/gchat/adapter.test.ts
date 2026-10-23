@@ -479,3 +479,48 @@ describe('selectors broken (unrelated DOM)', () => {
     expect(() => setComposerText(null as unknown as HTMLElement, 'x')).not.toThrow();
   });
 });
+
+describe('readMessage — 검토 보완 규칙', () => {
+  it('data-id 가 없으면 합성 id 를 만들고 idSource=derived', () => {
+    document.body.innerHTML =
+      '<div role="main" data-group-id="dm/X1"><div role="group" data-id="" data-user-id="u1">' +
+      '<span role="heading" data-message-id="m" data-name="Other"><span>Other</span></span>' +
+      '<span jsname="E53oB" data-absolute-timestamp="1">오전 1:00</span>' +
+      '<div jsname="bgckF">hello</div></div></div>';
+    const c = document.querySelector('[role="group"]') as HTMLElement;
+    const info = readMessage(c);
+    expect(info?.idSource).toBe('derived');
+    expect(info?.messageId).toMatch(/^derived:[0-9a-f]{8}$/);
+    expect(info?.timestampText).toBe('오전 1:00');
+    // 같은 재료면 같은 id
+    expect(readMessage(c)?.messageId).toBe(info?.messageId);
+  });
+  it('이모지만 있는 본문은 본문 없음으로 본다', () => {
+    document.body.innerHTML =
+      '<div role="main" data-group-id="dm/X1"><div role="group" data-id="a" data-user-id="u1">' +
+      '<span role="heading" data-message-id="a" data-name="Other"><span>Other</span></span>' +
+      '<div jsname="bgckF">👍🏻 🎉</div></div></div>';
+    const info = readMessage(document.querySelector('[role="group"]') as HTMLElement);
+    expect(info?.hasBody).toBe(false);
+    expect(info?.text).toBe('');
+  });
+  it('헤딩도 발신자도 없는 요소(시스템 알림 추정)는 본문 없음', () => {
+    document.body.innerHTML =
+      '<div role="main" data-group-id="dm/X1"><div role="group" data-id="s1">' +
+      '<div jsname="bgckF">Someone joined</div></div></div>';
+    const info = readMessage(document.querySelector('[role="group"]') as HTMLElement);
+    expect(info?.hasBody).toBe(false);
+  });
+  it('표시 이름이 실제 이름으로 시작하면(앱 배지 등) 내 메시지가 아니다', () => {
+    forgetSelfUserId();
+    document.body.innerHTML =
+      '<div role="main" data-group-id="dm/X1"><div role="group" data-id="b1" data-user-id="bot1">' +
+      '<span role="heading" data-message-id="b1" data-name="Bot"><span>Bot 앱</span></span>' +
+      '<div jsname="bgckF">hi</div></div></div>';
+    expect(readMessage(document.querySelector('[role="group"]') as HTMLElement)?.isOwn).toBe(false);
+  });
+  it('방 id 에 특수문자가 섞여도 대화방으로 인식한다', () => {
+    document.body.innerHTML = '<div role="main" data-group-id="space/AAQ.x~y"></div>';
+    expect(getCurrentRoom()?.roomId).toBe('space/AAQ.x~y');
+  });
+});

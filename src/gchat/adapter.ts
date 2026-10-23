@@ -38,6 +38,10 @@ export interface MessageInfo {
   /** 본문 요소가 있는가(이미지·파일 전용 메시지는 false). */
   hasBody: boolean;
   timestampMs?: number;
+  /** 시각 표시 텍스트(합성 id 재료). */
+  timestampText?: string;
+  /** 'dom' = data-id 를 그대로 씀, 'derived' = (방·발신자·시각·본문 해시)로 합성. */
+  idSource: 'dom' | 'derived';
   /** 본문 요소. 번역 블록은 이 요소의 다음 형제로 넣는다. */
   bodyEl: HTMLElement | null;
 }
@@ -71,7 +75,7 @@ export type MessageObserverCallback = (
 function normalizeRoomId(raw: string | null | undefined): string | null {
   if (!raw) return null;
   const trimmed = raw.trim().replace(/^\/+/, '');
-  const m = trimmed.match(/^(dm|space|room)\/([A-Za-z0-9_-]+)$/);
+  const m = trimmed.match(/^(dm|space|room)\/([^/\s]+)$/);
   if (!m) return null;
   const kind = m[1] === 'room' ? 'space' : m[1];
   return `${kind}/${m[2]}`;
@@ -174,12 +178,31 @@ export function isMessageContainer(el: Element | null | undefined): el is HTMLEl
   return safeMatches(el, SELECTORS.messageContainer);
 }
 
-/** 컨테이너 1건을 읽는다. 메시지 id 가 없으면 null. */
+/** 이모지·기호·공백만으로 된 텍스트인가(본문 없음으로 본다, spec 4.1). */
+const EMOJI_ONLY_RE =
+  /^(?:\p{Extended_Pictographic}|\p{Emoji_Modifier}|\p{Emoji_Component}|\u200d|\ufe0f|\s)*$/u;
+
+/** FNV-1a 32bit — 합성 메시지 id 용 작은 해시. */
+function fnv1a(input: string): string {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < input.length; i++) {
+    h ^= input.charCodeAt(i);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  return h.toString(16).padStart(8, '0');
+}
+
+/**
+ * 컨테이너 1건을 읽는다. 컨테이너가 아니면 null.
+ * - 메시지 id: `data-id` 우선, 없으면 (방 id + 발신자 + 시각 텍스트 + 본문 해시)로 합성(`idSource: 'derived'`).
+ * - 내 메시지: 헤딩 표시 텍스트가 `data-name` 과 다르면(= "나"/"You" 로 바뀜) 내 메시지. 단, 표시 텍스트가
+ *   실제 이름으로 시작하면(봇/앱 배지 등 꼬리가 붙은 경우) 내 메시지가 아니다 — UNVERIFIED 보수 조건.
+ * - 본문 없음: 본문 요소가 없거나, 이모지·공백뿐이거나, 헤딩·발신자 id 가 모두 없는(시스템 알림으로 추정,
+ *   UNVERIFIED 휴리스틱) 경우 `hasBody=false`, `text=''`.
+ */
 export function readMessage(container: HTMLElement | null | undefined): MessageInfo | null {
   try {
     if (!container || !isMessageContainer(container)) return null;
-    const messageId = safeAttr(container, ATTR.messageId)?.trim();
-    if (!messageId) return null;
 
     const heading = safeQuery(container, SELECTORS.senderHeading);
     const userId = safeAttr(container, ATTR.userId)?.trim() ?? '';
@@ -189,7 +212,7 @@ export function readMessage(container: HTMLElement | null | undefined): MessageI
     if (heading) {
       const displayed = (heading.textContent ?? '').replace(/\s+/g, ' ').trim();
       const realName = (safeAttr(heading, ATTR.name) ?? '').replace(/\s+/g, ' ').trim();
-      if (displayed && realName && displayed !== realName) {
+      if (displayed && realName && displayed !== realName && !displayed.startsWith(realName)) {
         isOwn = true;
         rememberSelfUserId(userId);
       }
@@ -197,21 +220,35 @@ export function readMessage(container: HTMLElement | null | undefined): MessageI
     if (!isOwn && selfUserId !== null && userId && userId === selfUserId) isOwn = true;
 
     const bodyEl = safeQuery(container, SELECTORS.messageBody);
-    const text = bodyEl ? extractText(bodyEl) : '';
+    let text = bodyEl ? extractText(bodyEl) : '';
+    let hasBody = bodyEl !== null;
+    if (hasBody && (EMOJI_ONLY_RE.test(text) || (!heading && !senderId))) {
+      text = '';
+      hasBody = false;
+    }
 
-    const tsRaw = safeAttr(safeQuery(container, SELECTORS.timestamp), ATTR.absoluteTimestamp);
+    const tsEl = safeQuery(container, SELECTORS.timestamp);
+    const tsRaw = safeAttr(tsEl, ATTR.absoluteTimestamp);
     const ts = tsRaw && /^\d+$/.test(tsRaw.trim()) ? Number(tsRaw) : Number.NaN;
+    const timestampText = (tsEl?.textContent ?? '').replace(/\s+/g, ' ').trim();
+
+    const roomId = getMessageRoomId(container) ?? '';
+    const domId = safeAttr(container, ATTR.messageId)?.trim() ?? '';
+    const messageId =
+      domId || `derived:${fnv1a([roomId, senderId, timestampText, text].join('\u0001'))}`;
 
     const info: MessageInfo = {
       messageId,
-      roomId: getMessageRoomId(container) ?? '',
+      roomId,
       senderId,
       isOwn,
       text,
-      hasBody: bodyEl !== null,
+      hasBody,
+      idSource: domId ? 'dom' : 'derived',
       bodyEl,
     };
     if (Number.isFinite(ts)) info.timestampMs = ts;
+    if (timestampText) info.timestampText = timestampText;
     return info;
   } catch {
     return null;
