@@ -98,6 +98,7 @@ function makeAdapter(): FakeAdapter {
         roomId: ROOM,
         senderId: isOwn ? 'me' : 'other',
         isOwn,
+        idSource: 'dom',
         text,
         hasBody: true,
         bodyEl: body,
