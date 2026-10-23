@@ -1,0 +1,35 @@
+/* 옵션 페이지 레이아웃. 토큰·공용 컴포넌트 스타일은 App.tsx 에서 먼저 불러온다. */
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background: var(--gat-bg-subtle);
+}
+
+.options-page {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: var(--gat-space-5) var(--gat-space-4) 64px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gat-space-4);
+}
+
+.options-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gat-space-1);
+  padding: var(--gat-space-3) 0;
+}
+
+.options-header h1 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.options-header p {
+  margin: 0;
+  color: var(--gat-fg-secondary);
+}

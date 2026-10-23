@@ -181,5 +181,220 @@
   },
   "bg_badgeBroken": {
     "message": "Google Chat 화면을 읽지 못했습니다. 확장 업데이트가 필요할 수 있습니다."
+  },
+  "options_title": {
+    "message": "설정"
+  },
+  "options_sectionProvider": {
+    "message": "번역 서비스"
+  },
+  "options_sectionProviderHelp": {
+    "message": "API 키는 이 기기에만 저장되며 계정 동기화에 포함되지 않습니다."
+  },
+  "options_activeProvider": {
+    "message": "사용할 서비스"
+  },
+  "options_provider_openai": {
+    "message": "OpenAI"
+  },
+  "options_provider_anthropic": {
+    "message": "Anthropic (Claude)"
+  },
+  "options_provider_openai_compatible": {
+    "message": "OpenAI 호환 서비스"
+  },
+  "options_apiKey": {
+    "message": "API 키"
+  },
+  "options_apiKeyHelp": {
+    "message": "이 기기에만 저장됩니다."
+  },
+  "options_apiKeyOptionalHelp": {
+    "message": "서비스에 따라 비워 둘 수 있습니다. 이 기기에만 저장됩니다."
+  },
+  "options_showValue": {
+    "message": "표시"
+  },
+  "options_hideValue": {
+    "message": "숨기기"
+  },
+  "options_model": {
+    "message": "모델"
+  },
+  "options_modelHelp": {
+    "message": "모델 이름을 직접 입력할 수 있습니다."
+  },
+  "options_modelHint_quality": {
+    "message": "품질 우선 · 비쌈"
+  },
+  "options_modelHint_balanced": {
+    "message": "균형"
+  },
+  "options_modelHint_cheapest": {
+    "message": "가장 저렴"
+  },
+  "options_baseUrl": {
+    "message": "서비스 주소"
+  },
+  "options_baseUrlHelp": {
+    "message": "예: https://host/v1 — 저장할 때 그 주소에 대한 접근 권한을 요청합니다."
+  },
+  "options_baseUrlSave": {
+    "message": "주소 저장"
+  },
+  "options_baseUrlSaved": {
+    "message": "주소를 저장했습니다."
+  },
+  "options_baseUrlInvalid": {
+    "message": "올바른 주소가 아닙니다. http:// 또는 https:// 로 시작해야 합니다."
+  },
+  "options_baseUrlPermissionDenied": {
+    "message": "접근 권한이 거부되어 주소를 저장하지 않았습니다."
+  },
+  "options_testConnection": {
+    "message": "연결 테스트"
+  },
+  "options_testing": {
+    "message": "테스트 중…"
+  },
+  "options_testSuccess": {
+    "message": "연결 성공 · 번역 예시: $SAMPLE$",
+    "placeholders": {
+      "sample": {
+        "content": "$1"
+      }
+    }
+  },
+  "options_testFailure": {
+    "message": "연결 실패 ($KIND$): $MESSAGE$",
+    "placeholders": {
+      "kind": {
+        "content": "$1"
+      },
+      "message": {
+        "content": "$2"
+      }
+    }
+  },
+  "options_sectionLanguage": {
+    "message": "언어"
+  },
+  "options_targetLang": {
+    "message": "대상 언어 (수신 번역)"
+  },
+  "options_outgoingLang": {
+    "message": "발신 언어 기본값"
+  },
+  "options_hideOriginal": {
+    "message": "원문 숨기기"
+  },
+  "options_hideOriginalHelp": {
+    "message": "번역문만 보이고 원문은 접어 둡니다."
+  },
+  "options_instructions": {
+    "message": "추가 지시문"
+  },
+  "options_instructionsHelp": {
+    "message": "번역할 때 함께 전달하는 지시 (말투, 용어 등)."
+  },
+  "options_instructionsPlaceholder": {
+    "message": "예: 존댓말로 번역해 주세요."
+  },
+  "options_sectionLimits": {
+    "message": "자동 번역 한도"
+  },
+  "options_maxMessageChars": {
+    "message": "메시지 길이 상한 (자)"
+  },
+  "options_maxMessageCharsHelp": {
+    "message": "이보다 긴 메시지는 자동 번역하지 않습니다."
+  },
+  "options_maxAutoPerRoom": {
+    "message": "대화방당 자동 번역 상한 (건)"
+  },
+  "options_maxAutoPerRoomHelp": {
+    "message": "최신 메시지부터 이 개수까지만 자동 번역합니다."
+  },
+  "options_limitInvalid": {
+    "message": "1 이상의 정수를 입력하세요."
+  },
+  "options_sectionRooms": {
+    "message": "대화방별 설정"
+  },
+  "options_sectionRoomsHelp": {
+    "message": "대화방에서 바꾼 설정이 여기에 모입니다."
+  },
+  "options_roomsEmpty": {
+    "message": "저장된 대화방 설정이 없습니다."
+  },
+  "options_roomIncomingOff": {
+    "message": "수신 번역 끄기"
+  },
+  "options_roomOutgoingLang": {
+    "message": "발신 언어"
+  },
+  "options_roomOutgoingDefault": {
+    "message": "기본값 사용"
+  },
+  "options_sectionData": {
+    "message": "데이터"
+  },
+  "options_clearHistory": {
+    "message": "번역 기록 지우기"
+  },
+  "options_clearHistoryHelp": {
+    "message": "이 기기의 번역 기록과 내 원문 기록을 모두 삭제합니다."
+  },
+  "options_clearHistoryConfirm": {
+    "message": "정말 지울까요? 되돌릴 수 없습니다."
+  },
+  "options_clearHistoryDone": {
+    "message": "번역 기록을 지웠습니다."
+  },
+  "options_quotaBanner": {
+    "message": "동기화 저장 한도 초과 — 설정을 저장하지 못했습니다. 대화방별 설정을 줄이거나 지시문을 짧게 해 보세요."
+  },
+  "options_saveFailed": {
+    "message": "저장하지 못했습니다: $MESSAGE$",
+    "placeholders": {
+      "message": {
+        "content": "$1"
+      }
+    }
+  },
+  "options_invalidKeyBanner": {
+    "message": "$PROVIDER$ API 키가 틀렸습니다. 키를 다시 확인하세요.",
+    "placeholders": {
+      "provider": {
+        "content": "$1"
+      }
+    }
+  },
+  "options_brokenBanner": {
+    "message": "Google Chat 화면 구조 변경으로 동작하지 않을 수 있습니다."
+  },
+  "options_dismiss": {
+    "message": "닫기"
+  },
+  "popup_enabled": {
+    "message": "번역 사용"
+  },
+  "popup_summaryProvider": {
+    "message": "서비스"
+  },
+  "popup_summaryModel": {
+    "message": "모델"
+  },
+  "popup_noModel": {
+    "message": "(모델 미설정)"
+  },
+  "popup_noKeyBanner": {
+    "message": "API 키가 없습니다. 설정에서 키를 입력하세요."
+  },
+  "popup_invalidKeyBanner": {
+    "message": "API 키가 틀렸습니다. 설정에서 키를 확인하세요."
+  },
+  "popup_currentRoom": {
+    "message": "현재 대화방"
   }
 }

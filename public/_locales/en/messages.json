@@ -181,5 +181,220 @@
   },
   "bg_badgeBroken": {
     "message": "Could not read the Google Chat page. The extension may need an update."
+  },
+  "options_title": {
+    "message": "Settings"
+  },
+  "options_sectionProvider": {
+    "message": "Translation service"
+  },
+  "options_sectionProviderHelp": {
+    "message": "API keys are stored only on this device and are never synced."
+  },
+  "options_activeProvider": {
+    "message": "Active service"
+  },
+  "options_provider_openai": {
+    "message": "OpenAI"
+  },
+  "options_provider_anthropic": {
+    "message": "Anthropic (Claude)"
+  },
+  "options_provider_openai_compatible": {
+    "message": "OpenAI-compatible service"
+  },
+  "options_apiKey": {
+    "message": "API key"
+  },
+  "options_apiKeyHelp": {
+    "message": "Stored on this device only."
+  },
+  "options_apiKeyOptionalHelp": {
+    "message": "May be left empty depending on the service. Stored on this device only."
+  },
+  "options_showValue": {
+    "message": "Show"
+  },
+  "options_hideValue": {
+    "message": "Hide"
+  },
+  "options_model": {
+    "message": "Model"
+  },
+  "options_modelHelp": {
+    "message": "You can type any model name."
+  },
+  "options_modelHint_quality": {
+    "message": "Best quality · expensive"
+  },
+  "options_modelHint_balanced": {
+    "message": "Balanced"
+  },
+  "options_modelHint_cheapest": {
+    "message": "Cheapest"
+  },
+  "options_baseUrl": {
+    "message": "Service URL"
+  },
+  "options_baseUrlHelp": {
+    "message": "e.g. https://host/v1 — saving asks for access permission to that origin."
+  },
+  "options_baseUrlSave": {
+    "message": "Save URL"
+  },
+  "options_baseUrlSaved": {
+    "message": "URL saved."
+  },
+  "options_baseUrlInvalid": {
+    "message": "Invalid URL. It must start with http:// or https://."
+  },
+  "options_baseUrlPermissionDenied": {
+    "message": "Permission was denied, so the URL was not saved."
+  },
+  "options_testConnection": {
+    "message": "Test connection"
+  },
+  "options_testing": {
+    "message": "Testing…"
+  },
+  "options_testSuccess": {
+    "message": "Connected · sample translation: $SAMPLE$",
+    "placeholders": {
+      "sample": {
+        "content": "$1"
+      }
+    }
+  },
+  "options_testFailure": {
+    "message": "Connection failed ($KIND$): $MESSAGE$",
+    "placeholders": {
+      "kind": {
+        "content": "$1"
+      },
+      "message": {
+        "content": "$2"
+      }
+    }
+  },
+  "options_sectionLanguage": {
+    "message": "Language"
+  },
+  "options_targetLang": {
+    "message": "Target language (incoming)"
+  },
+  "options_outgoingLang": {
+    "message": "Default outgoing language"
+  },
+  "options_hideOriginal": {
+    "message": "Hide original"
+  },
+  "options_hideOriginalHelp": {
+    "message": "Show only the translation and collapse the original."
+  },
+  "options_instructions": {
+    "message": "Extra instructions"
+  },
+  "options_instructionsHelp": {
+    "message": "Instructions passed along with every translation (tone, terms, etc.)."
+  },
+  "options_instructionsPlaceholder": {
+    "message": "e.g. Keep a formal tone."
+  },
+  "options_sectionLimits": {
+    "message": "Auto-translation limits"
+  },
+  "options_maxMessageChars": {
+    "message": "Max message length (characters)"
+  },
+  "options_maxMessageCharsHelp": {
+    "message": "Longer messages are not translated automatically."
+  },
+  "options_maxAutoPerRoom": {
+    "message": "Max auto-translations per room"
+  },
+  "options_maxAutoPerRoomHelp": {
+    "message": "Only the newest messages up to this count are translated automatically."
+  },
+  "options_limitInvalid": {
+    "message": "Enter a whole number of 1 or more."
+  },
+  "options_sectionRooms": {
+    "message": "Per-room settings"
+  },
+  "options_sectionRoomsHelp": {
+    "message": "Settings changed inside a room are collected here."
+  },
+  "options_roomsEmpty": {
+    "message": "No per-room settings saved."
+  },
+  "options_roomIncomingOff": {
+    "message": "Turn off incoming translation"
+  },
+  "options_roomOutgoingLang": {
+    "message": "Outgoing language"
+  },
+  "options_roomOutgoingDefault": {
+    "message": "Use default"
+  },
+  "options_sectionData": {
+    "message": "Data"
+  },
+  "options_clearHistory": {
+    "message": "Clear translation history"
+  },
+  "options_clearHistoryHelp": {
+    "message": "Deletes all cached translations and your original-text records on this device."
+  },
+  "options_clearHistoryConfirm": {
+    "message": "Really clear? This cannot be undone."
+  },
+  "options_clearHistoryDone": {
+    "message": "Translation history cleared."
+  },
+  "options_quotaBanner": {
+    "message": "Sync storage quota exceeded — the setting was not saved. Try removing per-room settings or shortening the instructions."
+  },
+  "options_saveFailed": {
+    "message": "Could not save: $MESSAGE$",
+    "placeholders": {
+      "message": {
+        "content": "$1"
+      }
+    }
+  },
+  "options_invalidKeyBanner": {
+    "message": "The $PROVIDER$ API key was rejected. Please check the key.",
+    "placeholders": {
+      "provider": {
+        "content": "$1"
+      }
+    }
+  },
+  "options_brokenBanner": {
+    "message": "Google Chat's layout may have changed, so the extension might not work."
+  },
+  "options_dismiss": {
+    "message": "Dismiss"
+  },
+  "popup_enabled": {
+    "message": "Translation"
+  },
+  "popup_summaryProvider": {
+    "message": "Service"
+  },
+  "popup_summaryModel": {
+    "message": "Model"
+  },
+  "popup_noModel": {
+    "message": "(no model set)"
+  },
+  "popup_noKeyBanner": {
+    "message": "No API key. Add one in settings."
+  },
+  "popup_invalidKeyBanner": {
+    "message": "The API key was rejected. Check it in settings."
+  },
+  "popup_currentRoom": {
+    "message": "Current room"
   }
 }
