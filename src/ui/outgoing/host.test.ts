@@ -22,6 +22,16 @@ describe('outgoing createShadowHost', () => {
     expect(createShadowHost('sent-original', 'light').el.style.display).toBe('block');
   });
 
+  it('setHidden 은 인라인 display 까지 바꿔 실제로 숨기고, 다시 보이면 원래 display 로 돌아간다', () => {
+    const host = createShadowHost('button', 'light');
+    host.setHidden(true);
+    expect(host.el.hidden).toBe(true);
+    expect(host.el.style.display).toBe('none');
+    host.setHidden(false);
+    expect(host.el.hidden).toBe(false);
+    expect(host.el.style.display).toBe('inline-flex');
+  });
+
   it('setTheme / remove', () => {
     const host = createShadowHost('panel', 'light');
     document.body.append(host.el);

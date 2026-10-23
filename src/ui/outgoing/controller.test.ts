@@ -243,6 +243,7 @@ describe('mount / setEnabled', () => {
     expect(h.controller.getState().open).toBe(true);
     h.controller.setEnabled(false);
     expect(buttonHost()?.hidden).toBe(true);
+    expect(buttonHost()?.style.display).toBe('none');
     expect(h.controller.getState().open).toBe(false);
     h.controller.setEnabled(true);
     expect(buttonHost()?.hidden).toBe(false);

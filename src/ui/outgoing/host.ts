@@ -15,6 +15,8 @@ export interface ShadowHost {
   /** React 루트를 붙이는 컨테이너. */
   mount: HTMLElement;
   setTheme(theme: Theme): void;
+  /** 인라인 `display` 가 `[hidden]` 기본 스타일을 이기므로 `display` 도 함께 바꾼다. */
+  setHidden(hidden: boolean): void;
   remove(): void;
 }
 
@@ -27,6 +29,7 @@ export function createShadowHost(kind: OutgoingHostKind, theme: Theme): ShadowHo
     el.style.display = 'inline-flex';
     el.style.verticalAlign = 'middle';
   }
+  const shownDisplay = el.style.display;
   const mount = document.createElement('div');
   mount.className = 'gat-root';
   root.append(mount);
@@ -36,6 +39,10 @@ export function createShadowHost(kind: OutgoingHostKind, theme: Theme): ShadowHo
     root,
     mount,
     setTheme: (next) => setHostTheme(el, next),
+    setHidden: (hidden) => {
+      el.hidden = hidden;
+      el.style.display = hidden ? 'none' : shownDisplay;
+    },
     remove: () => el.remove(),
   };
 }

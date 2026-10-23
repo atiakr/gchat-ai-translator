@@ -190,7 +190,7 @@ export function createOutgoingController(
     const keyHandler = (e: KeyboardEvent) => onShortcutKey(e);
     composer.textbox.addEventListener('keydown', keyHandler, KEY_LISTENER);
     mounted = { roomId: nextRoomId, composer, host, root, keyHandler };
-    host.el.hidden = !enabled;
+    host.setHidden(!enabled);
   }
 
   /* ---------------- 패널 호스트 ---------------- */
@@ -402,7 +402,7 @@ export function createOutgoingController(
     if (mounted && mounted.composer.textbox === composer.textbox && mounted.host.el.isConnected) {
       mounted.roomId = nextRoomId;
       mounted.composer = composer;
-      mounted.host.el.hidden = !enabled;
+      mounted.host.setHidden(!enabled);
       mounted.host.setTheme(adapter.getChatTheme());
       if (!enabled) closePanel();
       return;
@@ -413,7 +413,7 @@ export function createOutgoingController(
 
   function setEnabled(next: boolean): void {
     enabled = next;
-    if (mounted) mounted.host.el.hidden = !next;
+    if (mounted) mounted.host.setHidden(!next);
     if (!next && state.open) closePanel();
   }
 
