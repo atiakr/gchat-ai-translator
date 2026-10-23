@@ -1,0 +1,149 @@
+/* 수신 번역 UI. 원문보다 한 단계 낮은 톤, 장식 없음. */
+.gat-incoming {
+  box-sizing: border-box;
+  margin: var(--gat-space-1) 0 0;
+  font-family: var(--gat-font);
+  font-size: var(--gat-font-size);
+  line-height: var(--gat-line);
+  color: var(--gat-fg-secondary);
+  -webkit-font-smoothing: antialiased;
+}
+
+.gat-incoming *,
+.gat-incoming *::before,
+.gat-incoming *::after {
+  box-sizing: inherit;
+}
+
+/* 번역 블록 */
+.gat-block {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: var(--gat-space-2) var(--gat-space-3);
+  border: 0;
+  border-radius: var(--gat-radius-sm);
+  background: var(--gat-bg-subtle);
+  color: var(--gat-fg-secondary);
+  font: inherit;
+  text-align: left;
+}
+
+.gat-block--toggle {
+  cursor: pointer;
+}
+
+.gat-block--toggle:focus-visible {
+  outline: none;
+  box-shadow: var(--gat-focus);
+}
+
+.gat-block__head {
+  display: flex;
+  align-items: center;
+  gap: var(--gat-space-2);
+  margin-bottom: var(--gat-space-1);
+  font-size: var(--gat-font-size-sm);
+  color: var(--gat-fg-muted);
+}
+
+.gat-block__label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gat-space-1);
+}
+
+.gat-block__label::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: var(--gat-radius-pill);
+  background: var(--gat-blue);
+}
+
+.gat-block__toggle {
+  margin-left: auto;
+  color: var(--gat-blue);
+}
+
+.gat-block__text {
+  display: block;
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--gat-fg-secondary);
+}
+
+/* 로딩 플레이스홀더 */
+.gat-placeholder {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gat-space-2);
+  padding: var(--gat-space-1) 0;
+  font-size: var(--gat-font-size-sm);
+  color: var(--gat-fg-muted);
+  animation: gat-fade-in 150ms ease-out both;
+}
+
+.gat-placeholder__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--gat-radius-pill);
+  background: var(--gat-fg-muted);
+  opacity: 0.6;
+}
+
+@keyframes gat-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gat-placeholder {
+    animation: none;
+  }
+}
+
+/* 오류 한 줄 + 재시도 */
+.gat-error {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--gat-space-2);
+  padding: var(--gat-space-1) 0;
+  font-size: var(--gat-font-size-sm);
+  color: var(--gat-danger);
+}
+
+.gat-error__retry {
+  margin: 0;
+  padding: 2px var(--gat-space-2);
+  border: 1px solid var(--gat-border);
+  border-radius: var(--gat-radius-pill);
+  background: var(--gat-bg);
+  color: var(--gat-blue);
+  font: inherit;
+  font-size: var(--gat-font-size-sm);
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+.gat-error__retry:hover {
+  background: var(--gat-blue-soft);
+}
+
+.gat-error__retry:focus-visible {
+  outline: none;
+  box-shadow: var(--gat-focus);
+}
+
+/* 건너뜀 안내 한 줄 */
+.gat-skipped {
+  padding: var(--gat-space-1) 0;
+  font-size: var(--gat-font-size-sm);
+  color: var(--gat-fg-muted);
+}

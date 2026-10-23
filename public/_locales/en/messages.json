@@ -79,5 +79,44 @@
   },
   "common_loading": {
     "message": "Translating…"
+  },
+  "incoming_translatedLabel": {
+    "message": "Translated"
+  },
+  "incoming_loading": {
+    "message": "Translating…"
+  },
+  "incoming_retry": {
+    "message": "Retry"
+  },
+  "incoming_errorAuth": {
+    "message": "Check your API key"
+  },
+  "incoming_errorRateLimit": {
+    "message": "Rate limit exceeded"
+  },
+  "incoming_errorServer": {
+    "message": "Translation service error"
+  },
+  "incoming_errorBadRequest": {
+    "message": "Bad request"
+  },
+  "incoming_errorParse": {
+    "message": "Could not read the response"
+  },
+  "incoming_errorUnknown": {
+    "message": "Translation failed"
+  },
+  "incoming_skippedLong": {
+    "message": "Skipped: message too long"
+  },
+  "incoming_skippedLimit": {
+    "message": "Skipped: older message"
+  },
+  "incoming_showOriginal": {
+    "message": "Show original"
+  },
+  "incoming_hideOriginal": {
+    "message": "Hide original"
   }
 }
