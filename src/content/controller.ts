@@ -192,6 +192,7 @@ export function createContentController(overrides: Partial<ContentDeps> = {}): C
     return {
       maxMessageChars: settings?.maxMessageChars,
       maxAutoPerRoom: settings?.maxAutoPerRoom,
+      targetLang: targetLang(),
     };
   }
 
@@ -475,8 +476,8 @@ export function createContentController(overrides: Partial<ContentDeps> = {}): C
     byContainer.set(container, info.messageId);
 
     const verdict = judgeLimits(text, ranks.get(info.messageId) ?? 1, limitOptions());
-    if (verdict === 'no_text') {
-      applyStatus(entry, 'no_text');
+    if (verdict === 'no_text' || verdict === 'same_language') {
+      applyStatus(entry, verdict);
       return;
     }
     if (verdict === 'skipped_long' || verdict === 'skipped_limit') {

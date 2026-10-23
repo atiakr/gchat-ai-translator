@@ -1,11 +1,14 @@
 import { DEFAULTS } from '../config/defaults';
+import { isMostlyInLanguage } from './script';
 
 export interface LimitOptions {
   maxMessageChars?: number;
   maxAutoPerRoom?: number;
+  /** 주면 호출 전 같은 언어 판정을 한다. */
+  targetLang?: string;
 }
 
-export type LimitVerdict = 'ok' | 'no_text' | 'skipped_long' | 'skipped_limit';
+export type LimitVerdict = 'ok' | 'no_text' | 'same_language' | 'skipped_long' | 'skipped_limit';
 
 /** 본문 텍스트가 있는지(공백만 있으면 없음). */
 export function hasText(text: string): boolean {
@@ -13,7 +16,7 @@ export function hasText(text: string): boolean {
 }
 
 /**
- * 호출 전 판정. `rankFromNewest` 는 그 방 화면에서 본문 텍스트가 있는 수신 메시지만
+ * 호출 전 판정. 같은 언어 판정이 길이·건수 판정보다 먼저다(대상 언어 메시지에는 건너뜀 줄도 붙지 않는다). `rankFromNewest` 는 그 방 화면에서 본문 텍스트가 있는 수신 메시지만
  * 최신순으로 센 순번(최신 = 1). 새로 도착한 메시지는 항상 1 이다.
  */
 export function judgeLimits(
@@ -24,6 +27,12 @@ export function judgeLimits(
   const maxChars = options.maxMessageChars ?? DEFAULTS.maxMessageChars;
   const maxPerRoom = options.maxAutoPerRoom ?? DEFAULTS.maxAutoPerRoom;
   if (!hasText(text)) return 'no_text';
+  if (
+    options.targetLang !== undefined &&
+    isMostlyInLanguage(text, options.targetLang, DEFAULTS.sameLanguageMinRatio)
+  ) {
+    return 'same_language';
+  }
   if (text.length > maxChars) return 'skipped_long';
   if (rankFromNewest > maxPerRoom) return 'skipped_limit';
   return 'ok';

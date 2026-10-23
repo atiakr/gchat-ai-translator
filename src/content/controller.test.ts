@@ -461,7 +461,8 @@ describe('start', () => {
     const { adapter, messaging, mounts } = rig;
     const ok = adapter.add('ok', 'translate me');
     const bad = adapter.add('bad', 'broken');
-    const same = adapter.add('same', '이미 한국어');
+    // 문자로는 언어를 가를 수 없어 서비스가 같은 언어로 판정하는 경우(예: 코드만 있는 메시지)
+    const same = adapter.add('same', 'npm run build');
 
     let resolveBatch: ((v: BatchResponse) => void) | null = null;
     messaging.batch = () =>
@@ -620,6 +621,23 @@ describe('상한 판정', () => {
       'mid',
       'newest',
     ]);
+  });
+
+  it('대상 언어(한국어)로 쓰인 메시지는 영어 용어가 섞여도 요청하지 않고 아무것도 붙이지 않는다', async () => {
+    rig = makeRig({ targetLang: 'ko' });
+    const { adapter, messaging, mounts } = rig;
+    const korean = adapter.add(
+      'ko',
+      'Producer, talent, staff 계정을 새로 다 만들어서 다시 테스트 할 계획이야',
+    );
+    const english = adapter.add('en', 'Please check the invoice page');
+
+    await rig.controller.start();
+    await flush();
+
+    expect(mounts.statusOf(korean)).toBeUndefined();
+    expect(mounts.statusOf(english)).toBe('translated');
+    expect(messaging.of('translate.batch')[0]?.items.map((i) => i.messageId)).toEqual(['en']);
   });
 
   it('순번은 본문 있는 수신 메시지만 세고 내 메시지·본문 없음은 건너뛴다', async () => {

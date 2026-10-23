@@ -21,6 +21,11 @@ export const DEFAULTS = {
   maxMessageChars: 2000,
   /** 대화방당 자동 번역 상한(건, 최신순). 초과 시 skipped_limit. */
   maxAutoPerRoom: 200,
+  /**
+   * 호출 전 같은 언어 판정 기준. 글자가 있는 토큰 중 대상 언어 문자를 품은 토큰이 이 비율 이상이면
+   * 호출하지 않고 same_language 로 둔다(한국어·일본어·태국어만 판정).
+   */
+  sameLanguageMinRatio: 0.5,
   /** 묶음 호출 최대 건수. */
   batchSize: 10,
   /**

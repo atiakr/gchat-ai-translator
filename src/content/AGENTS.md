@@ -7,7 +7,7 @@
 ## Invariants
 - The user's own messages never reach `translate.batch` by any path.
 - When translation is unavailable (globally off, no key, invalid key) or incoming translation is off for the room, no `translate.batch` is sent. The moment translation becomes unavailable, all incoming UI is removed. Turning incoming off for a room does not hide the outgoing button.
-- Limits are judged with `judgeLimits` before any request. `no_text` gets no UI; `skipped_*` gets a notice line without a call.
+- Limits are judged with `judgeLimits` before any request. `no_text` gets no UI; `same_language` (a message mostly written in the target language, judged locally for Korean, Japanese, and Thai by `src/engine/script.ts`) gets no UI and no call; `skipped_*` gets a notice line without a call.
 - Rank is counted newest-first over the ids of incoming messages with a body seen so far in the current room, accumulated in order (kept even after they leave the DOM). Switching rooms or stopping clears the accumulated list and status map and removes all UI.
 - The `pending` loading indicator is attached only after a 150 ms grace period. If the result arrives before that, the final state is attached directly. The grace timer is cancelled when the message is removed, the room changes, or the controller stops.
 - In the per-message status map (`messageId → textHash, status, translation`), an unchanged hash is never requested again. A changed hash goes back to `pending` and is requested again.
