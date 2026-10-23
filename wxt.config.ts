@@ -1,18 +1,7 @@
 import { defineConfig } from 'wxt';
+import { HOST_PERMISSIONS, OPTIONAL_HOST_PERMISSIONS, PERMISSIONS } from './src/config/permissions';
 
-// 권한·host 목록은 권한 고정 목록과 정확히 일치해야 하며 테스트(src/config/manifest.test.ts)로 고정된다.
-export const HOST_PERMISSIONS = [
-  'https://chat.google.com/*',
-  'https://api.openai.com/*',
-  'https://api.anthropic.com/*',
-] as const;
-
-export const OPTIONAL_HOST_PERMISSIONS = [
-  'https://*/*',
-  'http://localhost/*',
-  'http://127.0.0.1/*',
-] as const;
-
+// 권한·host 목록은 src/config/permissions.ts 가 소유하고 테스트(manifest.test.ts)로 고정된다.
 export default defineConfig({
   modules: ['@wxt-dev/module-react'],
   imports: false,
@@ -20,7 +9,7 @@ export default defineConfig({
     name: '__MSG_extName__',
     description: '__MSG_extDescription__',
     default_locale: 'ko',
-    permissions: ['storage'],
+    permissions: [...PERMISSIONS],
     host_permissions: [...HOST_PERMISSIONS],
     optional_host_permissions: [...OPTIONAL_HOST_PERMISSIONS],
     commands: {

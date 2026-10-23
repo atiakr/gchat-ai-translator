@@ -1,5 +1,83 @@
 {
-  "extName": { "message": "GChat AI Translator" },
-  "extDescription": { "message": "Google Chat 메시지를 내 LLM API 키로 실시간 번역합니다." },
-  "commandTranslateOutgoing": { "message": "보내기 전 번역" }
+  "extName": {
+    "message": "GChat AI Translator"
+  },
+  "extDescription": {
+    "message": "Google Chat 메시지를 내 LLM API 키로 실시간 번역합니다."
+  },
+  "commandTranslateOutgoing": {
+    "message": "보내기 전 번역"
+  },
+  "lang_ko": {
+    "message": "한국어"
+  },
+  "lang_en": {
+    "message": "영어"
+  },
+  "lang_ja": {
+    "message": "일본어"
+  },
+  "lang_zh_CN": {
+    "message": "중국어(간체)"
+  },
+  "lang_zh_TW": {
+    "message": "중국어(번체)"
+  },
+  "lang_es": {
+    "message": "스페인어"
+  },
+  "lang_fr": {
+    "message": "프랑스어"
+  },
+  "lang_de": {
+    "message": "독일어"
+  },
+  "lang_pt": {
+    "message": "포르투갈어"
+  },
+  "lang_it": {
+    "message": "이탈리아어"
+  },
+  "lang_ru": {
+    "message": "러시아어"
+  },
+  "lang_vi": {
+    "message": "베트남어"
+  },
+  "lang_th": {
+    "message": "태국어"
+  },
+  "lang_id": {
+    "message": "인도네시아어"
+  },
+  "common_save": {
+    "message": "저장"
+  },
+  "common_cancel": {
+    "message": "취소"
+  },
+  "common_confirm": {
+    "message": "확인"
+  },
+  "common_retry": {
+    "message": "재시도"
+  },
+  "common_delete": {
+    "message": "삭제"
+  },
+  "common_on": {
+    "message": "켜짐"
+  },
+  "common_off": {
+    "message": "꺼짐"
+  },
+  "common_openOptions": {
+    "message": "설정 열기"
+  },
+  "common_translated": {
+    "message": "번역됨"
+  },
+  "common_loading": {
+    "message": "번역 중…"
+  }
 }

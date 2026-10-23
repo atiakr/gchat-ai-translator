@@ -1,7 +1,83 @@
 {
-  "extName": { "message": "GChat AI Translator" },
+  "extName": {
+    "message": "GChat AI Translator"
+  },
   "extDescription": {
     "message": "Real-time AI translation for Google Chat with your own LLM API key."
   },
-  "commandTranslateOutgoing": { "message": "Translate before sending" }
+  "commandTranslateOutgoing": {
+    "message": "Translate before sending"
+  },
+  "lang_ko": {
+    "message": "Korean"
+  },
+  "lang_en": {
+    "message": "English"
+  },
+  "lang_ja": {
+    "message": "Japanese"
+  },
+  "lang_zh_CN": {
+    "message": "Chinese (Simplified)"
+  },
+  "lang_zh_TW": {
+    "message": "Chinese (Traditional)"
+  },
+  "lang_es": {
+    "message": "Spanish"
+  },
+  "lang_fr": {
+    "message": "French"
+  },
+  "lang_de": {
+    "message": "German"
+  },
+  "lang_pt": {
+    "message": "Portuguese"
+  },
+  "lang_it": {
+    "message": "Italian"
+  },
+  "lang_ru": {
+    "message": "Russian"
+  },
+  "lang_vi": {
+    "message": "Vietnamese"
+  },
+  "lang_th": {
+    "message": "Thai"
+  },
+  "lang_id": {
+    "message": "Indonesian"
+  },
+  "common_save": {
+    "message": "Save"
+  },
+  "common_cancel": {
+    "message": "Cancel"
+  },
+  "common_confirm": {
+    "message": "Confirm"
+  },
+  "common_retry": {
+    "message": "Retry"
+  },
+  "common_delete": {
+    "message": "Delete"
+  },
+  "common_on": {
+    "message": "On"
+  },
+  "common_off": {
+    "message": "Off"
+  },
+  "common_openOptions": {
+    "message": "Open settings"
+  },
+  "common_translated": {
+    "message": "Translated"
+  },
+  "common_loading": {
+    "message": "Translating…"
+  }
 }

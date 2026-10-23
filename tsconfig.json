@@ -5,7 +5,7 @@
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
     "jsx": "react-jsx",
-    "types": ["@testing-library/jest-dom", "vitest/globals"]
+    "types": ["@testing-library/jest-dom", "vitest/globals", "node"]
   },
   "include": [".wxt/wxt.d.ts", "entrypoints", "src", "tests", "wxt.config.ts", "vitest.config.ts"],
   "exclude": ["node_modules", ".output"]
