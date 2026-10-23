@@ -19,13 +19,23 @@ export function watchSystemTheme(cb: (t: Theme) => void): () => void {
  * 어댑터가 더 정확한 신호를 알면 그쪽을 우선 쓴다.
  */
 export function themeFromBackground(el: Element | null): Theme {
-  if (!el || typeof getComputedStyle === 'undefined') return 'light';
-  const bg = getComputedStyle(el).backgroundColor;
-  const m = bg.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
-  if (!m) return 'light';
-  const [r, g, b] = [Number(m[1]), Number(m[2]), Number(m[3])];
-  const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-  return luminance < 128 ? 'dark' : 'light';
+  if (typeof getComputedStyle === 'undefined') return 'light';
+  // 투명 배경은 판정 불가 → 칠해진 조상을 찾아 올라간다. 끝까지 없으면 light.
+  let cur: Element | null = el;
+  while (cur) {
+    const bg = getComputedStyle(cur).backgroundColor;
+    const m = bg.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
+    if (m) {
+      const alpha = m[4] === undefined ? 1 : Number(m[4]);
+      if (alpha > 0) {
+        const [r, g, b] = [Number(m[1]), Number(m[2]), Number(m[3])];
+        const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+        return luminance < 128 ? 'dark' : 'light';
+      }
+    }
+    cur = cur.parentElement;
+  }
+  return 'light';
 }
 
 /** 호스트 요소에 테마 속성을 건다. 토큰 CSS 는 `[data-theme]` 로 분기한다. */
