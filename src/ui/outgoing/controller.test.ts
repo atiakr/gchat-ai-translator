@@ -95,6 +95,8 @@ function makeAdapter(): FakeAdapter {
       c.dataset.id = id;
       const body = document.createElement('div');
       body.className = 'body';
+      // 실제 화면처럼 말풍선 안 여백은 본문 요소 자체의 padding 이다
+      body.style.padding = '8px 12px';
       body.textContent = text;
       c.append(body);
       list.append(c);
@@ -622,6 +624,8 @@ describe('sent original', () => {
     expect(hosts).toHaveLength(1);
     expect(hosts[0]?.previousElementSibling).toBe(mine.querySelector('.body'));
     expect(hosts[0]?.shadowRoot).not.toBeNull();
+    // 본문의 좌우·아래 여백을 그대로 받아 본문 글과 같은 선에 놓인다
+    expect(hosts[0]?.style.padding).toBe('0px 12px 8px');
     expect(h.adapter.disconnectCount).toBe(1);
     // 같은 메시지에 두 번 달지 않는다
     await h.controller.restoreSentOriginals([mine]);

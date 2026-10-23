@@ -18,6 +18,7 @@
 
 ## Implementation
 - Visual style: white / dark-gray surfaces, generous spacing, 12px radius (8px for small elements), a single blue accent, minimal shadows, no decoration. The only animation is a 150 ms opacity transition on the loading indicator, disabled under `prefers-reduced-motion`.
+- The sent original sits right after the body of my translated message, collapsed to a small "See original" text button; clicking expands the original below it. The sent message itself is never hidden or changed.
 - The outgoing preview is attached to `document.body` with `position: fixed`, positioned from the composer's screen coordinates.
 - Sync-backed text inputs on the options page save only on blur/Enter to stay under the sync write quota.
 

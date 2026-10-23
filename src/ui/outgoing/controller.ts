@@ -344,12 +344,26 @@ export function createOutgoingController(
       : false;
   }
 
+  /**
+   * 말풍선 안 여백은 본문 요소 자체의 padding 이라, 본문 바로 뒤에 놓인 호스트는 말풍선 가장자리에 붙는다.
+   * 본문의 좌우·아래 여백을 그대로 옮겨 본문 글과 같은 선에 맞춘다.
+   */
+  function matchBodyInset(el: HTMLElement, body: HTMLElement): void {
+    try {
+      const cs = getComputedStyle(body);
+      el.style.padding = `0 ${cs.paddingRight} ${cs.paddingBottom} ${cs.paddingLeft}`;
+    } catch {
+      // 스타일을 못 읽으면 여백 없이 둔다.
+    }
+  }
+
   function mountSentOriginal(container: HTMLElement, original: string): void {
     const info = adapter.readMessage(container);
     if (!info) return;
     const anchor = adapter.getTranslationAnchor(container) ?? info.bodyEl;
     if (!anchor || alreadyMounted(info.messageId, anchor)) return;
     const host = createShadowHost('sent-original', adapter.getChatTheme());
+    matchBodyInset(host.el, anchor);
     anchor.insertAdjacentElement('afterend', host.el);
     const root = createRoot(host.mount);
     root.render(createElement(SentOriginal, { original }));

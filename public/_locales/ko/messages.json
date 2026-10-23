@@ -167,8 +167,11 @@
   "outgoing_error_unknown": {
     "message": "번역을 요청하지 못했습니다. 다시 시도하세요."
   },
-  "outgoing_myOriginal": {
-    "message": "내가 쓴 원문"
+  "outgoing_showMyOriginal": {
+    "message": "원문보기"
+  },
+  "outgoing_hideMyOriginal": {
+    "message": "원문 접기"
   },
   "bg_badgeNoKey": {
     "message": "API 키가 없습니다. 설정에서 키를 입력하세요."
