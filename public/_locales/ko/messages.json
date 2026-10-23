@@ -79,5 +79,44 @@
   },
   "common_loading": {
     "message": "번역 중…"
+  },
+  "incoming_translatedLabel": {
+    "message": "번역됨"
+  },
+  "incoming_loading": {
+    "message": "번역 중…"
+  },
+  "incoming_retry": {
+    "message": "재시도"
+  },
+  "incoming_errorAuth": {
+    "message": "API 키를 확인하세요"
+  },
+  "incoming_errorRateLimit": {
+    "message": "요청 한도를 넘었어요"
+  },
+  "incoming_errorServer": {
+    "message": "번역 서비스 오류"
+  },
+  "incoming_errorBadRequest": {
+    "message": "잘못된 요청"
+  },
+  "incoming_errorParse": {
+    "message": "응답을 읽을 수 없어요"
+  },
+  "incoming_errorUnknown": {
+    "message": "번역에 실패했어요"
+  },
+  "incoming_skippedLong": {
+    "message": "긴 메시지라 건너뜀"
+  },
+  "incoming_skippedLimit": {
+    "message": "오래된 메시지라 건너뜀"
+  },
+  "incoming_showOriginal": {
+    "message": "원문 보기"
+  },
+  "incoming_hideOriginal": {
+    "message": "원문 숨기기"
   }
 }
