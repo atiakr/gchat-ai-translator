@@ -1,5 +1,5 @@
 /*
- * 발신 번역 UI (토스 스타일).
+ * 발신 번역 UI (절제된 면, 한 가지 포인트 색).
  * 색·간격·그림자는 tokens.css 의 변수만 쓴다.
  */
 .gat-root {
@@ -257,7 +257,7 @@
 
 .gat-btn--primary {
   background: var(--gat-blue);
-  color: #ffffff;
+  color: var(--gat-on-accent);
 }
 
 .gat-btn--primary:not(:disabled):hover {

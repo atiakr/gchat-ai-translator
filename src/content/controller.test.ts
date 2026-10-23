@@ -386,6 +386,8 @@ function makeRig(settings: Partial<GlobalSettings> = {}, canTranslate = true): R
 }
 
 const flush = () => vi.advanceTimersByTimeAsync(0);
+/** 로딩 표시 유예 시간을 넘긴다. */
+const pastPlaceholderDelay = () => vi.advanceTimersByTimeAsync(DEFAULTS.placeholderDelayMs);
 
 let rig: Rig | null = null;
 
@@ -448,7 +450,7 @@ describe('start', () => {
     expect(outgoing.restoreSentOriginals).toHaveBeenCalledWith([own]);
   });
 
-  it('요청 전에는 pending 으로 붙이고, 응답에 따라 translated / error / same_language 로 바꾼다', async () => {
+  it('응답이 늦으면 유예 뒤 pending 을 붙이고, 응답에 따라 translated / error / same_language 로 바꾼다', async () => {
     rig = makeRig();
     const { adapter, messaging, mounts } = rig;
     const ok = adapter.add('ok', 'translate me');
@@ -463,6 +465,9 @@ describe('start', () => {
 
     await rig.controller.start();
     await flush();
+    // 유예 시간 안에는 아직 아무것도 붙이지 않는다.
+    expect(mounts.handles.size).toBe(0);
+    await pastPlaceholderDelay();
 
     expect(mounts.statusOf(ok)).toBe('pending');
     expect(mounts.statusOf(bad)).toBe('pending');
@@ -508,6 +513,85 @@ describe('start', () => {
     expect(mounts.statusOf(n2)).toBe('translated');
     expect(mounts.handles.has(mine)).toBe(false);
     expect(outgoing.restoreSentOriginals).toHaveBeenLastCalledWith([mine]);
+  });
+});
+
+describe('로딩 표시 유예', () => {
+  it('응답이 유예 시간 안에 오면 로딩 표시 없이 바로 번역 블록을 붙인다', async () => {
+    rig = makeRig();
+    const { adapter, mounts } = rig;
+    const a = adapter.add('a', 'cached hello');
+    await rig.controller.start();
+    await flush();
+    expect(mounts.statusOf(a)).toBe('translated');
+    await pastPlaceholderDelay();
+    const calls = (mounts.mountIncoming as ReturnType<typeof vi.fn>).mock.calls;
+    expect(calls).toHaveLength(1);
+    expect(calls[0]?.[3]).toMatchObject({ status: 'translated', translation: '[ko] cached hello' });
+    const handle = mounts.handleOf(a);
+    expect(handle.updates.some((u) => u.status === 'pending')).toBe(false);
+    expect(mounts.statusOf(a)).toBe('translated');
+  });
+
+  it('같은 언어 결과가 유예 시간 안에 오면 아무것도 붙이지 않는다(깜빡임 없음)', async () => {
+    rig = makeRig();
+    const { adapter, messaging, mounts } = rig;
+    messaging.batch = async (payload) => ({
+      items: payload.items.map((i) => ({
+        messageId: i.messageId,
+        status: 'same_language' as const,
+        detectedLang: 'ko',
+      })),
+    });
+    const a = adapter.add('a', '안녕하세요');
+    await rig.controller.start();
+    await flush();
+    await pastPlaceholderDelay();
+    expect(mounts.mountIncoming).not.toHaveBeenCalled();
+    expect(mounts.handles.has(a)).toBe(false);
+  });
+
+  it('응답이 늦으면 유예 뒤 로딩 표시를 붙이고 결과가 오면 최종 상태로 바꾼다', async () => {
+    rig = makeRig();
+    const { adapter, messaging, mounts } = rig;
+    let resolveBatch: ((v: BatchResponse) => void) | null = null;
+    messaging.batch = () =>
+      new Promise<BatchResponse>((resolve) => {
+        resolveBatch = resolve;
+      });
+    const a = adapter.add('a', 'slow');
+    await rig.controller.start();
+    await vi.advanceTimersByTimeAsync(DEFAULTS.placeholderDelayMs - 1);
+    expect(mounts.handles.has(a)).toBe(false);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(mounts.statusOf(a)).toBe('pending');
+    (resolveBatch as unknown as (v: BatchResponse) => void)({
+      items: [{ messageId: 'a', status: 'translated', translation: 'SLOW', detectedLang: 'en' }],
+    });
+    await flush();
+    expect(mounts.handleOf(a).props).toMatchObject({ status: 'translated', translation: 'SLOW' });
+  });
+
+  it('방이 바뀌거나 정지하면 대기 중인 로딩 표시 타이머를 취소한다', async () => {
+    rig = makeRig();
+    const { adapter, messaging, mounts } = rig;
+    messaging.batch = () => new Promise<BatchResponse>(() => {});
+    adapter.add('a', 'pending forever');
+    await rig.controller.start();
+    await flush();
+    adapter.room = { roomId: 'space/room2' };
+    adapter.emit();
+    await pastPlaceholderDelay();
+    expect(mounts.mountIncoming).not.toHaveBeenCalled();
+
+    const rig2 = makeRig();
+    rig2.messaging.batch = () => new Promise<BatchResponse>(() => {});
+    rig2.adapter.add('b', 'pending forever');
+    await rig2.controller.start();
+    await flush();
+    rig2.controller.stop();
+    await pastPlaceholderDelay();
+    expect(rig2.mounts.mountIncoming).not.toHaveBeenCalled();
   });
 });
 
@@ -566,6 +650,64 @@ describe('상한 판정', () => {
     // 이미 붙은 번역문은 그대로 둔다.
     expect(mounts.statusOf(first)).toBe('translated');
     expect(messaging.of('translate.batch')).toHaveLength(2);
+  });
+
+  it('화면에서 빠진 메시지도 방당 상한 순번에 계속 센다(가상 스크롤로 위로 불러오기)', async () => {
+    rig = makeRig({ maxAutoPerRoom: 200 });
+    const { adapter, mounts } = rig;
+    const all: HTMLElement[] = [];
+    for (let i = 1; i <= 250; i++)
+      all.push(adapter.add(`m${String(i).padStart(3, '0')}`, `msg ${i}`));
+    /** 화면에는 한 번에 100개만 있다(from..to, 1부터). */
+    const window = (from: number, to: number) => all.slice(from - 1, to);
+
+    adapter.containers = window(151, 250);
+    await rig.controller.start();
+    await flush();
+
+    for (const [from, to] of [
+      [101, 200],
+      [51, 150],
+      [1, 100],
+    ] as const) {
+      const prev = adapter.containers;
+      const next = window(from, to);
+      const removed = prev.filter((c) => !next.includes(c));
+      const added = next.filter((c) => !prev.includes(c));
+      adapter.containers = next;
+      adapter.emit(added, removed);
+      await flush();
+    }
+
+    const statuses = all.map((c) => mounts.statusOf(c));
+    expect(statuses.slice(0, 50).every((st) => st === 'skipped_limit')).toBe(true);
+    expect(statuses.slice(50).every((st) => st === 'translated')).toBe(true);
+
+    // 새로 도착한 메시지는 여전히 순번 1 이다.
+    const fresh = adapter.add('m251', 'fresh');
+    adapter.containers = [...window(1, 100), fresh];
+    adapter.emit([fresh]);
+    await flush();
+    expect(mounts.statusOf(fresh)).toBe('translated');
+  });
+
+  it('방이 바뀌면 누적 순번을 새로 센다', async () => {
+    rig = makeRig({ maxAutoPerRoom: 2 });
+    const { adapter, mounts } = rig;
+    const a = adapter.add('a', 'A');
+    const b = adapter.add('b', 'B');
+    await rig.controller.start();
+    await flush();
+    adapter.room = { roomId: 'space/room2' };
+    adapter.containers = [];
+    adapter.emit([], [a, b]);
+    await flush();
+    const c = adapter.add('c', 'C', { roomId: 'space/room2' });
+    const d = adapter.add('d', 'D', { roomId: 'space/room2' });
+    adapter.emit([c, d]);
+    await flush();
+    expect(mounts.statusOf(c)).toBe('translated');
+    expect(mounts.statusOf(d)).toBe('translated');
   });
 });
 
@@ -998,7 +1140,7 @@ describe('방 전환', () => {
         resolveBatch = () => resolve(translatedItems(payload));
       });
     await rig.controller.start();
-    await flush();
+    await pastPlaceholderDelay();
     expect(mounts.statusOf(a)).toBe('pending');
 
     adapter.room = { roomId: 'space/room2' };

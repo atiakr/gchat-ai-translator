@@ -1,10 +1,10 @@
-import { applyTheme, type Theme } from '../theme';
-import tokensCss from '../tokens.css?inline';
+import { createShadowHost as createBaseShadowHost, setHostTheme } from '../shadow';
+import type { Theme } from '../theme';
 import stylesCss from './styles.css?inline';
 
 /**
- * 발신 번역 UI 전용 최소 Shadow DOM 호스트. 공용 shadow 도우미가 생기면 그쪽으로 옮긴다.
- * 페이지 스타일과 격리하려고 open shadow root 에 토큰 + 컴포넌트 CSS 를 함께 넣는다.
+ * 발신 번역 UI 의 Shadow DOM 호스트. 격리·토큰 주입은 공용 `src/ui/shadow.ts` 가 하고,
+ * 여기서는 발신 UI 표식(`data-gat-outgoing`)과 React 를 붙일 컨테이너만 더한다.
  */
 export type OutgoingHostKind = 'button' | 'panel' | 'sent-original';
 
@@ -19,22 +19,23 @@ export interface ShadowHost {
 }
 
 export function createShadowHost(kind: OutgoingHostKind, theme: Theme): ShadowHost {
-  const el = document.createElement('div');
+  const { host: el, root } = createBaseShadowHost(stylesCss, 'div');
   el.dataset.gatOutgoing = kind;
-  el.style.display = kind === 'button' ? 'inline-flex' : 'block';
-  if (kind === 'button') el.style.verticalAlign = 'middle';
-  const root = el.attachShadow({ mode: 'open' });
-  const style = document.createElement('style');
-  style.textContent = `${tokensCss}\n${stylesCss}`;
+  if (kind === 'button') {
+    // 버튼 호스트만 예외로 inline 이다: 보내기 버튼과 같은 줄(입력창 툴바)에 나란히 놓여야 하기 때문.
+    // `contain: content` 는 그대로 두어 바깥 레이아웃에는 자기 크기만큼만 영향을 준다.
+    el.style.display = 'inline-flex';
+    el.style.verticalAlign = 'middle';
+  }
   const mount = document.createElement('div');
   mount.className = 'gat-root';
-  root.append(style, mount);
-  applyTheme(el, theme);
+  root.append(mount);
+  setHostTheme(el, theme);
   return {
     el,
     root,
     mount,
-    setTheme: (next) => applyTheme(el, next),
+    setTheme: (next) => setHostTheme(el, next),
     remove: () => el.remove(),
   };
 }

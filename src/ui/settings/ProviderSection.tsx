@@ -121,6 +121,10 @@ function ProviderBlock({
 }: ProviderBlockProps) {
   const ids = useId();
   const isCompat = provider === 'openai_compatible';
+  // 키도 다른 텍스트 칸처럼 blur/Enter 때만 저장한다(글자마다 저장하지 않는다).
+  const keyDraft = useDraft(apiKey, (next) => {
+    onApiKey(next.trim());
+  });
   const modelDraft = useDraft(model, (next) => {
     onModel(next.trim());
   });
@@ -143,7 +147,7 @@ function ProviderBlock({
       setUrlNotice({ tone: 'error', text: t('options_baseUrlInvalid') });
       return;
     }
-    // 저장 시점에 그 출처만 권한 요청. 거부하면 저장하지 않는다.
+    // 저장 시점에 그 출처 하나만 권한을 요청한다. 거부하면 저장하지 않는다.
     let granted = false;
     try {
       granted = await browser.permissions.request({ origins: [pattern] });
@@ -166,7 +170,7 @@ function ProviderBlock({
     try {
       const result = await sendMessage('provider.test', {
         provider,
-        apiKey,
+        apiKey: keyDraft.draft.trim(),
         model: modelDraft.draft.trim(),
         ...(isCompat ? { baseUrl: urlDraft.trim() } : {}),
       });
@@ -197,9 +201,11 @@ function ProviderBlock({
         <TextField
           id={`${ids}-key`}
           type="password"
-          value={apiKey}
-          onChange={(v) => {
-            onApiKey(v);
+          value={keyDraft.draft}
+          onChange={keyDraft.setDraft}
+          onBlur={keyDraft.commit}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') keyDraft.commit();
           }}
           placeholder="sk-…"
         />

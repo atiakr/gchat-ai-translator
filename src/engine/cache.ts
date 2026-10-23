@@ -1,7 +1,9 @@
 import { storage } from 'wxt/utils/storage';
 import { DEFAULTS, type ProviderId } from '../config/defaults';
+import { HISTORY_KEYS } from '../config/storageKeys';
 import type { CacheEntry, SentOriginalEntry } from '../settings/schema';
 import { hashStringLong } from './hash';
+import { normalizeSentText } from './sentText';
 
 /**
  * 번역 기록(캐시)과 내 원문 기록. 둘 다 `chrome.storage.local` 의 항목 하나씩에 맵 + 순서 배열로 둔다.
@@ -17,12 +19,15 @@ interface Store<T> {
 const EMPTY_CACHE: Store<CacheEntry> = { entries: {}, order: [] };
 const EMPTY_SENT: Store<SentOriginalEntry> = { entries: {}, order: [] };
 
-const cacheItem = storage.defineItem<Store<CacheEntry>>('local:translationCache', {
+const cacheItem = storage.defineItem<Store<CacheEntry>>(`local:${HISTORY_KEYS.translationCache}`, {
   fallback: EMPTY_CACHE,
 });
-const sentItem = storage.defineItem<Store<SentOriginalEntry>>('local:sentOriginals', {
-  fallback: EMPTY_SENT,
-});
+const sentItem = storage.defineItem<Store<SentOriginalEntry>>(
+  `local:${HISTORY_KEYS.sentOriginals}`,
+  {
+    fallback: EMPTY_SENT,
+  },
+);
 
 const SEP = '\u001f';
 
@@ -136,7 +141,7 @@ export function clear(): Promise<void> {
 
 // ---- 내 원문 기록 ----
 function sentKey(roomId: string, sentText: string): string {
-  return `${roomId}${SEP}${hashStringLong(sentText.trim())}`;
+  return `${roomId}${SEP}${hashStringLong(normalizeSentText(sentText))}`;
 }
 
 export function saveSentOriginal(

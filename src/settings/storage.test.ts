@@ -24,7 +24,7 @@ describe('migrateGlobalSettings', () => {
     expect(migrateGlobalSettings(null)).toEqual(DEFAULT_GLOBAL_SETTINGS);
     expect(migrateGlobalSettings(undefined)).toEqual(DEFAULT_GLOBAL_SETTINGS);
   });
-  it('기본값이 정해진 값과 일치한다', () => {
+  it('기본값은 정해진 기본값 표와 일치한다', () => {
     expect(DEFAULT_GLOBAL_SETTINGS).toMatchObject({
       enabled: true,
       activeProvider: 'openai',
@@ -101,11 +101,20 @@ describe('틀린 키 상태와 번역 가능 조건', () => {
     expect(await canTranslate()).toEqual({ ok: false, reason: 'disabled' });
   });
   it('커스텀 서비스는 빈 키를 허용한다', async () => {
-    await setGlobalSettings({ activeProvider: 'openai_compatible' });
+    await setGlobalSettings({
+      activeProvider: 'openai_compatible',
+      customBaseUrl: 'http://localhost:11434/v1',
+    });
     expect(await canTranslate()).toEqual({ ok: true });
     await setInvalidKey('openai_compatible', 'auth');
     expect((await canTranslate()).reason).toBe('invalid_key');
     await clearInvalidKey('openai_compatible');
     expect(await canTranslate()).toEqual({ ok: true });
+  });
+  it('커스텀 서비스인데 주소가 비어 있으면 no_key', async () => {
+    await setGlobalSettings({ activeProvider: 'openai_compatible', customBaseUrl: '' });
+    expect(await canTranslate()).toEqual({ ok: false, reason: 'no_key' });
+    await setGlobalSettings({ customBaseUrl: '   ' });
+    expect(await canTranslate()).toEqual({ ok: false, reason: 'no_key' });
   });
 });

@@ -2,6 +2,7 @@ import { createElement } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { DEFAULTS } from '../../config/defaults';
 import { isLanguageCode, type LanguageCode } from '../../config/languages';
+import { normalizeSentText } from '../../engine/sentText';
 import type { ComposerInfo, RichContentReport } from '../../gchat/adapter';
 import * as gchat from '../../gchat/adapter';
 import { sendMessage as runtimeSendMessage } from '../../messaging/protocol';
@@ -18,13 +19,14 @@ import { TranslateButton } from './TranslateButton';
 /**
  * 발신 번역("보내기 전 번역") 컨트롤러.
  *
- * 불변식 7: 사용자가 확인을 누르기 전에는 아무것도 전송하지 않는다.
- * 불변식 6: 키 핸들러는 입력창 요소에만 건다(문서 수준 캡처 없음). 페이지 전역 객체는 만지지 않는다.
+ * 사용자가 확인을 누르기 전에는 아무것도 전송하지 않는다.
+ * 키 핸들러는 입력창 요소에만 건다(문서 수준 핸들러 없음, 입력창에서는 캡처 단계로 받는다). 페이지 전역 객체는 만지지 않는다.
  */
 
 export type OutgoingAdapter = Pick<
   typeof gchat,
   | 'getActiveComposer'
+  | 'getCurrentRoom'
   | 'readComposerText'
   | 'isComposerEmpty'
   | 'composerHasRichContent'
@@ -88,6 +90,11 @@ const PANEL_GAP_PX = 8;
 const PANEL_MIN_WIDTH_PX = 320;
 const PANEL_MAX_WIDTH_PX = 720;
 const PANEL_Z_INDEX = '2147483000';
+/**
+ * 입력창 keydown 은 캡처 단계에서 받는다. Google Chat 편집기가 같은 요소·조상에서 Enter 를 먼저 처리해
+ * 원문을 보내기 전에 단축키를 가로채기 위해서다. 해제도 같은 옵션으로 한다.
+ */
+const KEY_LISTENER: AddEventListenerOptions = { capture: true };
 
 function defaultDeps(): OutgoingDeps {
   return {
@@ -118,10 +125,6 @@ function initialState(): OutgoingState {
 
 function isShortcutCombo(e: KeyboardEvent): boolean {
   return e.key === 'Enter' && e.shiftKey && (e.ctrlKey || e.metaKey) && !e.altKey;
-}
-
-function normalizeSentText(text: string): string {
-  return text.replace(/\s+/g, ' ').trim();
 }
 
 interface Mounted {
@@ -167,7 +170,7 @@ export function createOutgoingController(
   function unmountButton(): void {
     if (!mounted) return;
     try {
-      mounted.composer.textbox.removeEventListener('keydown', mounted.keyHandler);
+      mounted.composer.textbox.removeEventListener('keydown', mounted.keyHandler, KEY_LISTENER);
     } catch {
       // 이미 떨어진 요소
     }
@@ -185,7 +188,7 @@ export function createOutgoingController(
     const root = createRoot(host.mount);
     root.render(createElement(TranslateButton, { onClick: () => void trigger() }));
     const keyHandler = (e: KeyboardEvent) => onShortcutKey(e);
-    composer.textbox.addEventListener('keydown', keyHandler);
+    composer.textbox.addEventListener('keydown', keyHandler, KEY_LISTENER);
     mounted = { roomId: nextRoomId, composer, host, root, keyHandler };
     host.el.hidden = !enabled;
   }
@@ -278,6 +281,16 @@ export function createOutgoingController(
   }
 
   /* ---------------- 언어·번역 ---------------- */
+
+  /** 방 설정 항목을 처음 만들 때 함께 저장할 방 이름. 화면의 방이 같은 방일 때만. */
+  function currentRoomName(id: string): string | undefined {
+    try {
+      const room = adapter.getCurrentRoom();
+      return room && room.roomId === id && room.name ? room.name : undefined;
+    } catch {
+      return undefined;
+    }
+  }
 
   async function resolveLang(): Promise<LanguageCode> {
     try {
@@ -429,8 +442,9 @@ export function createOutgoingController(
 
   function onShortcutKey(e: KeyboardEvent): void {
     if (!enabled || !isShortcutCombo(e)) return;
+    // 단축키 조합만 막는다. 그 밖의 키(그냥 Enter 포함)는 Google Chat 으로 그대로 흘려보낸다.
     e.preventDefault();
-    e.stopPropagation();
+    e.stopImmediatePropagation();
     fire();
   }
 
@@ -461,11 +475,15 @@ export function createOutgoingController(
     }
     const { original, lang, saveAsDefault } = state;
     const room = roomId();
+    const roomName = currentRoomName(room);
     closePanel();
     startSentWatch(sentText, original, before);
     if (saveAsDefault) {
       try {
-        await deps.setRoomSettings(room, { outgoingLang: lang });
+        await deps.setRoomSettings(room, {
+          outgoingLang: lang,
+          ...(roomName ? { name: roomName } : {}),
+        });
       } catch {
         // 방 설정 저장 실패는 전송 결과에 영향을 주지 않는다.
       }

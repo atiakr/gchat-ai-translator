@@ -10,6 +10,7 @@ import {
   setBrokenState,
   setGlobalSettings,
   setInvalidKey,
+  setRoomSettings,
 } from '../settings/storage';
 import {
   broadcastSettingsChanged,
@@ -156,22 +157,31 @@ describe('handleStatusReport', () => {
     await handleStatusReport({ roomDetected: true, messagesFound: 1 }, () => 3);
     expect(await getBrokenState()).toBeNull();
   });
-  it('방 이름은 주어지고 다를 때만 방 설정에 저장한다', async () => {
+  it('설정 항목이 없는 방의 보고는 아무 항목도 만들지 않는다', async () => {
     await handleStatusReport({ roomId: 'r', roomDetected: true, messagesFound: 1 });
-    expect(await getRoomSettings('r')).toBeNull();
     await handleStatusReport({
       roomId: 'r',
       roomName: 'Alpha',
       roomDetected: true,
       messagesFound: 1,
     });
-    expect((await getRoomSettings('r'))?.name).toBe('Alpha');
+    expect(await getRoomSettings('r')).toBeNull();
+    expect(Object.keys(await fakeBrowser.storage.sync.get(null))).not.toContain('room:r');
+  });
+  it('설정 항목이 있는 방은 이름이 다를 때만 갱신한다', async () => {
+    await setRoomSettings('r', { incomingDisabled: true, name: 'Alpha' });
     await handleStatusReport({
       roomId: 'r',
       roomName: 'Beta',
       roomDetected: true,
       messagesFound: 1,
     });
+    expect(await getRoomSettings('r')).toEqual({
+      roomId: 'r',
+      incomingDisabled: true,
+      name: 'Beta',
+    });
+    await handleStatusReport({ roomId: 'r', roomDetected: true, messagesFound: 1 });
     expect((await getRoomSettings('r'))?.name).toBe('Beta');
   });
 });

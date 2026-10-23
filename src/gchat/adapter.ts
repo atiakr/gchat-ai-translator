@@ -2,7 +2,7 @@
  * Google Chat DOM 어댑터 — 확장의 나머지가 쓰는 안정 인터페이스.
  * DOM 셀렉터는 `./selectors` 에만 있고, 여기서는 그 값을 해석만 한다.
  *
- * 불변식: 어떤 셀렉터가 실패해도 예외 대신 null / [] / false 를 돌려주며,
+ * 어떤 셀렉터가 실패해도 예외 대신 null / [] / false 를 돌려주며,
  * Google Chat 의 기본 동작(입력·전송·스크롤)을 건드리지 않는다. 페이지 전역 객체는 만지지 않는다.
  */
 import { type Theme, themeFromBackground } from '../ui/theme';
@@ -178,7 +178,7 @@ export function isMessageContainer(el: Element | null | undefined): el is HTMLEl
   return safeMatches(el, SELECTORS.messageContainer);
 }
 
-/** 이모지·기호·공백만으로 된 텍스트인가(본문 없음으로 본다, spec 4.1). */
+/** 이모지·기호·공백만으로 된 텍스트인가(본문 없음으로 본다). */
 const EMOJI_ONLY_RE =
   /^(?:\p{Extended_Pictographic}|\p{Emoji_Modifier}|\p{Emoji_Component}|\u200d|\ufe0f|\s)*$/u;
 

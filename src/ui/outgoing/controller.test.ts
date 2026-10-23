@@ -17,6 +17,7 @@ const ROOM = 'dm/room1';
 /* ------------------------------------------------------------------ */
 
 interface FakeAdapter extends OutgoingAdapter {
+  room: { roomId: string; name?: string } | null;
   composer: ComposerInfo | null;
   text: string;
   rich: { mentions: boolean; formatting: boolean; attachments: boolean };
@@ -59,7 +60,9 @@ function makeAdapter(): FakeAdapter {
     observer: null,
     observeCount: 0,
     disconnectCount: 0,
+    room: { roomId: ROOM, name: 'Alice' },
     getActiveComposer: vi.fn(() => fake.composer),
+    getCurrentRoom: vi.fn(() => (fake.room ? { ...fake.room } : null)),
     readComposerText: vi.fn(() => fake.text),
     isComposerEmpty: vi.fn(() => fake.text.trim().length === 0),
     composerHasRichContent: vi.fn(() => ({ ...fake.rich })),
@@ -395,6 +398,40 @@ describe('shortcut / command dedupe', () => {
     await vi.waitFor(() => expect(h.msg.of('translate.outgoing')).toHaveLength(1));
   });
 
+  it('단축키는 캡처 단계에서 받아 Google Chat 편집기의 keydown 처리보다 먼저 막는다', async () => {
+    const h = track(setup());
+    const textbox = h.adapter.composer?.textbox as HTMLElement;
+    const editorOnTextbox = vi.fn();
+    const editorOnAncestor = vi.fn();
+    // 페이지 편집기가 먼저 등록한 리스너(대상·버블 단계)
+    textbox.addEventListener('keydown', editorOnTextbox);
+    textbox.parentElement?.addEventListener('keydown', editorOnAncestor);
+    h.controller.mount(ROOM, true);
+    h.adapter.text = '안녕';
+    const e = combo();
+    textbox.dispatchEvent(e);
+    expect(e.defaultPrevented).toBe(true);
+    expect(editorOnTextbox).not.toHaveBeenCalled();
+    expect(editorOnAncestor).not.toHaveBeenCalled();
+    await vi.waitFor(() => expect(h.msg.of('translate.outgoing')).toHaveLength(1));
+    // 그냥 Enter 는 편집기로 그대로 간다
+    const plain = combo({ ctrlKey: false, shiftKey: false });
+    textbox.dispatchEvent(plain);
+    expect(plain.defaultPrevented).toBe(false);
+    expect(editorOnTextbox).toHaveBeenCalledTimes(1);
+    expect(editorOnAncestor).toHaveBeenCalledTimes(1);
+  });
+
+  it('destroy 뒤에는 캡처 핸들러가 해제되어 단축키를 막지 않는다', () => {
+    const h = track(setup());
+    h.controller.mount(ROOM, true);
+    h.adapter.text = '안녕';
+    h.controller.destroy();
+    const e = combo();
+    h.adapter.composer?.textbox.dispatchEvent(e);
+    expect(e.defaultPrevented).toBe(false);
+  });
+
   it('macOS Cmd+Shift+Enter 도 같다', async () => {
     const h = track(setup());
     h.controller.mount(ROOM, true);
@@ -461,7 +498,7 @@ describe('confirm / cancel', () => {
     expect(h.controller.getState().open).toBe(false);
   });
 
-  it('확인 전에는 아무것도 보내지 않는다(불변식 7)', async () => {
+  it('확인 전에는 아무것도 보내지 않는다', async () => {
     const h = track(setup());
     h.controller.mount(ROOM, true);
     h.adapter.text = '안녕';
@@ -480,8 +517,20 @@ describe('confirm / cancel', () => {
     h.controller.setSaveAsDefault(true);
     await h.controller.changeLanguage('fr');
     await h.controller.confirm();
-    expect(h.setRoomSettings).toHaveBeenCalledWith(ROOM, { outgoingLang: 'fr' });
+    expect(h.setRoomSettings).toHaveBeenCalledWith(ROOM, { outgoingLang: 'fr', name: 'Alice' });
     expect(h.rooms.get(ROOM)?.outgoingLang).toBe('fr');
+  });
+
+  it('방 이름을 모르거나 화면의 방이 다르면 이름 없이 저장한다', async () => {
+    const h = track(setup());
+    h.adapter.room = { roomId: 'dm/other', name: 'Bob' };
+    h.controller.mount(ROOM, true);
+    h.adapter.text = '안녕';
+    await h.controller.trigger();
+    h.controller.setSaveAsDefault(true);
+    await h.controller.changeLanguage('fr');
+    await h.controller.confirm();
+    expect(h.setRoomSettings).toHaveBeenCalledWith(ROOM, { outgoingLang: 'fr' });
   });
 
   it('번역 중이거나 번역문이 비면 확인은 무시된다', async () => {

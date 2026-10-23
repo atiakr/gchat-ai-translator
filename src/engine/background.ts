@@ -22,9 +22,9 @@ import { createEngine, type Engine } from './engine';
 
 /**
  * background service worker 배선. 엔트리(entrypoints/background.ts)는 `startBackground()` 만 부른다.
- * - 메시지 핸들러, 설치 직후 옵션 페이지(4.4), 단축키 → 활성 chat 탭(4.3)
- * - 설정·키·상태 변경 → 모든 chat.google.com 탭에 settings.changed 브로드캐스트 + 배지 갱신(4.4·4.2·4.7)
- * 키는 어떤 메시지에도 싣지 않는다(불변식 2).
+ * - 메시지 핸들러, 설치 직후 옵션 페이지, 단축키 → 활성 chat 탭
+ * - 설정·키·상태 변경 → 모든 chat.google.com 탭에 settings.changed 브로드캐스트 + 배지 갱신
+ * 키는 어떤 메시지에도 싣지 않는다.
  */
 
 export const CHAT_URL_PREFIX = 'https://chat.google.com/';
@@ -41,7 +41,7 @@ type StatusReport = MessageMap['status.report']['request'];
 /**
  * 깨짐 보고. content 는 60초 동안 메시지를 하나도 못 찾았을 때만
  * `roomDetected: true, messagesFound: 0` 을 보낸다. 메시지를 찾은 보고는 상태를 해제한다.
- * 방 이름이 오고 저장된 것과 다르면 방 설정에 기록한다.
+ * 방 이름이 오고 그 방 설정 항목이 이미 있으며 저장된 이름과 다르면 이름만 고친다.
  */
 export async function handleStatusReport(
   report: StatusReport,
@@ -56,7 +56,8 @@ export async function handleStatusReport(
   if (report.roomId && report.roomName) {
     try {
       const room = await getRoomSettings(report.roomId);
-      if (room?.name !== report.roomName) {
+      // 항목을 만드는 것은 사용자가 방 설정을 바꿀 때뿐이다. 보고는 있는 항목의 이름만 맞춘다.
+      if (room && room.name !== report.roomName) {
         await setRoomSettings(report.roomId, { name: report.roomName });
       }
     } catch {

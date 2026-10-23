@@ -1,6 +1,6 @@
 import { DEFAULTS } from '../config/defaults';
 import { hashString } from '../engine/hash';
-import { judgeLimits, rankFromNewest } from '../engine/limits';
+import { hasText, judgeLimits } from '../engine/limits';
 import type { ErrorKind, TranslationStatus } from '../engine/types';
 import type { MessageInfo, RoomInfo } from '../gchat/adapter';
 import * as gchat from '../gchat/adapter';
@@ -34,9 +34,9 @@ import type { Theme } from '../ui/theme';
  * content script 조립 컨트롤러 — 어댑터·엔진 판정·메시징·UI 를 묶는다.
  *
  * - 수신 자동 번역: 화면의 수신 메시지를 읽어 상한을 판정하고, 틱마다 한 묶음으로
- *   background 에 요청해 결과를 블록에 반영한다. 내 메시지는 어떤 경우에도 요청하지 않는다(불변식 1).
- * - 전역 스위치·키·방별 끄기가 하나라도 막으면 요청조차 보내지 않는다(불변식 5).
- * - 어떤 메시지에서 예외가 나도 나머지 처리와 Google Chat 화면은 멈추지 않는다(불변식 6).
+ *   background 에 요청해 결과를 블록에 반영한다. 내 메시지는 어떤 경우에도 요청하지 않는다.
+ * - 전역 스위치·키·방별 끄기가 하나라도 막으면 요청조차 보내지 않는다.
+ * - 어떤 메시지에서 예외가 나도 나머지 처리와 Google Chat 화면은 멈추지 않는다.
  * - 깨짐 감지·상태 보고, 방 전환(SPA), 테마 추적, 발신 번역 컨트롤러 연결.
  */
 
@@ -129,7 +129,7 @@ function warn(where: string, error: unknown): void {
   }
 }
 
-/** 한 단계가 던져도 파이프라인이 멈추지 않게 감싼다(불변식 6). */
+/** 한 단계가 던져도 파이프라인이 멈추지 않게 감싼다. */
 function guard<T>(where: string, fn: () => T, fallback: T): T {
   try {
     return fn();
@@ -162,6 +162,14 @@ export function createContentController(overrides: Partial<ContentDeps> = {}): C
 
   const tracked = new Map<string, Tracked>();
   const byContainer = new WeakMap<HTMLElement, string>();
+  /** 로딩 표시를 늦게 붙이는 타이머(messageId → handle). */
+  const placeholderTimers = new Map<string, unknown>();
+  /**
+   * 이 방에서 지금까지 본 본문 있는 수신 메시지 id(오래된 것 → 최신 순). 가상 스크롤로 화면에서 빠진
+   * 메시지도 순번에 계속 세기 위해 누적한다. 방이 바뀌거나 정지하면 비운다.
+   */
+  let seenOrder: string[] = [];
+  const seenSet = new Set<string>();
 
   // ---- 자원 ----
   let outgoing: OutgoingLike | null = null;
@@ -249,6 +257,7 @@ export function createContentController(overrides: Partial<ContentDeps> = {}): C
     entry.status = status;
     entry.translation = extra.translation;
     entry.errorKind = extra.errorKind;
+    if (status !== 'pending') cancelPlaceholder(entry.messageId);
     guard(
       'applyStatus',
       () => {
@@ -270,6 +279,46 @@ export function createContentController(overrides: Partial<ContentDeps> = {}): C
       },
       undefined,
     );
+  }
+
+  function cancelPlaceholder(messageId: string): void {
+    const handle = placeholderTimers.get(messageId);
+    if (handle === undefined) return;
+    placeholderTimers.delete(messageId);
+    guard('clearTimeout', () => deps.clearTimeout(handle), undefined);
+  }
+
+  function cancelAllPlaceholders(): void {
+    for (const id of Array.from(placeholderTimers.keys())) cancelPlaceholder(id);
+  }
+
+  /**
+   * 요청 대기(pending) 상태로 두되 로딩 표시는 잠시 뒤에 붙인다. 그 안에 결과가 오면 applyStatus 가
+   * 타이머를 취소하고 최종 상태를 바로 그린다. 이미 블록이 붙어 있으면(수정·재시도) 즉시 pending 으로 바꾼다.
+   */
+  function markPendingDeferred(entry: Tracked): void {
+    if (deps.getMounted(entry.container)) {
+      applyStatus(entry, 'pending');
+      return;
+    }
+    entry.status = 'pending';
+    entry.translation = undefined;
+    entry.errorKind = undefined;
+    cancelPlaceholder(entry.messageId);
+    const handle = deps.setTimeout(() => {
+      if (placeholderTimers.get(entry.messageId) === handle) {
+        placeholderTimers.delete(entry.messageId);
+      }
+      if (stopped || tracked.get(entry.messageId) !== entry || entry.status !== 'pending') return;
+      guard(
+        'mount placeholder',
+        () => {
+          if (!deps.getMounted(entry.container)) mountEntry(entry);
+        },
+        undefined,
+      );
+    }, DEFAULTS.placeholderDelayMs);
+    placeholderTimers.set(entry.messageId, handle);
   }
 
   function applyResult(entry: Tracked, result: TranslateBatchResultItem | undefined): void {
@@ -295,12 +344,54 @@ export function createContentController(overrides: Partial<ContentDeps> = {}): C
     const id = byContainer.get(container);
     if (id === undefined) return;
     byContainer.delete(container);
-    if (tracked.get(id)?.container === container) tracked.delete(id);
+    if (tracked.get(id)?.container === container) {
+      tracked.delete(id);
+      cancelPlaceholder(id);
+    }
   }
 
   function clearTracking(): void {
+    cancelAllPlaceholders();
     tracked.clear();
     epoch += 1;
+  }
+
+  function resetSeen(): void {
+    seenOrder = [];
+    seenSet.clear();
+  }
+
+  /**
+   * 화면의 id 목록(문서 순)을 누적 순서에 합친다. 새 id 는 화면에서 바로 뒤에 있는 아는 id 앞에 넣고
+   * (위로 스크롤해 불러온 과거 메시지), 뒤에 아는 id 가 없으면 마지막 아는 id 뒤에 넣는다(새 도착).
+   * 아는 id 가 하나도 없으면 끝에 붙인다.
+   */
+  function mergeSeen(domIds: string[]): void {
+    let lastKnown = -1;
+    domIds.forEach((id, i) => {
+      if (seenSet.has(id)) lastKnown = i;
+    });
+    const lastKnownId = lastKnown >= 0 ? domIds[lastKnown] : undefined;
+    let insertAt =
+      lastKnownId === undefined ? seenOrder.length : seenOrder.indexOf(lastKnownId) + 1;
+    for (let i = lastKnown + 1; i < domIds.length; i++) {
+      const id = domIds[i];
+      if (id === undefined || seenSet.has(id)) continue;
+      seenOrder.splice(insertAt, 0, id);
+      seenSet.add(id);
+      insertAt += 1;
+    }
+    let anchor = lastKnownId === undefined ? -1 : seenOrder.indexOf(lastKnownId);
+    for (let i = lastKnown - 1; i >= 0; i--) {
+      const id = domIds[i];
+      if (id === undefined) continue;
+      if (seenSet.has(id)) {
+        anchor = seenOrder.indexOf(id);
+        continue;
+      }
+      seenOrder.splice(Math.max(anchor, 0), 0, id);
+      seenSet.add(id);
+    }
   }
 
   /* ---------------------------------------------------------------- */
@@ -312,20 +403,21 @@ export function createContentController(overrides: Partial<ContentDeps> = {}): C
     return !info.roomId || info.roomId === roomId;
   }
 
-  /** 화면의 수신 메시지(문서 순)로 최신순 순번을 매긴다. 본문 없음·내 메시지는 순번을 차지하지 않는다. */
+  /**
+   * 최신순 순번을 매긴다. 화면의 본문 있는 수신 메시지(문서 순)를 이 방의 누적 순서에 합친 뒤, 그 안에서
+   * 최신 = 1 로 센다. 화면에서 빠진 메시지도 계속 센다. 본문 없음·내 메시지는 순번을 차지하지 않는다.
+   */
   function computeRanks(containers: HTMLElement[]): Map<string, number> {
     const ids: string[] = [];
-    const texts: string[] = [];
     for (const container of containers) {
       const info = guard('readMessage', () => adapter.readMessage(container), null);
       if (!info || info.isOwn || !inRoom(info)) continue;
-      ids.push(info.messageId);
-      texts.push(info.hasBody ? info.text : '');
+      if (info.hasBody && hasText(info.text)) ids.push(info.messageId);
     }
-    const ranks = rankFromNewest(texts);
+    mergeSeen(ids);
     const map = new Map<string, number>();
-    ids.forEach((id, i) => {
-      map.set(id, ranks[i] ?? 0);
+    seenOrder.forEach((id, i) => {
+      map.set(id, seenOrder.length - i);
     });
     return map;
   }
@@ -402,7 +494,7 @@ export function createContentController(overrides: Partial<ContentDeps> = {}): C
       applyStatus(entry, verdict);
       return;
     }
-    applyStatus(entry, 'pending');
+    markPendingDeferred(entry);
     batch.set(entry.messageId, entry);
   }
 
@@ -518,6 +610,7 @@ export function createContentController(overrides: Partial<ContentDeps> = {}): C
       roomLoading = null;
       lastReport = null;
       clearTracking();
+      resetSeen();
       lastIncomingActive = false;
       guard('unmountAll', () => deps.unmountAll(), undefined);
     }
@@ -681,7 +774,7 @@ export function createContentController(overrides: Partial<ContentDeps> = {}): C
     } catch (error) {
       warn('settings.get', error);
     }
-    // 설정을 못 받으면 꺼진 것으로 두고(불변식 5), 잠시 뒤 몇 번 다시 묻는다(service worker 기동 지연 대비).
+    // 설정을 못 받으면 꺼진 것으로 두고, 잠시 뒤 몇 번 다시 묻는다(service worker 기동 지연 대비).
     // settings.changed 브로드캐스트가 오면 그 전에라도 복구된다.
     settings = null;
     canTranslate = false;
@@ -751,6 +844,7 @@ export function createContentController(overrides: Partial<ContentDeps> = {}): C
     }
     themeObserver = null;
     clearTracking();
+    resetSeen();
     guard('unmountAll', () => deps.unmountAll(), undefined);
     guard('outgoing.destroy', () => outgoing?.destroy(), undefined);
     outgoing = null;

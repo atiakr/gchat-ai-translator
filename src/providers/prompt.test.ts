@@ -47,6 +47,13 @@ describe('buildPrompt', () => {
     const inc = buildPrompt(makeRequest({ mode: 'incoming' }));
     expect(inc.system).not.toBe(out.system);
   });
+  it('수신 모드는 코드·URL·멘션만 있는 메시지를 same_language 로 돌려주라고 지시한다', () => {
+    const inc = buildPrompt(makeRequest({ mode: 'incoming' }));
+    expect(inc.system).toMatch(/only of code.*URLs.*@mentions.*same_language to true/is);
+    expect(inc.system).toMatch(/return the original text unchanged/i);
+    const out = buildPrompt(makeRequest({ mode: 'outgoing', items: [{ id: 'x', text: 'hi' }] }));
+    expect(out.system).not.toMatch(/only of code/i);
+  });
   it('jsonInPrompt 이면 JSON 만 출력하라는 지시가 추가된다', () => {
     const p = buildPrompt(makeRequest(), { jsonInPrompt: true });
     expect(p.system).toMatch(/only.*JSON/i);

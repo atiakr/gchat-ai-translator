@@ -85,6 +85,7 @@ export function buildSystemPrompt(request: TranslateRequest, options: PromptOpti
   } else {
     lines.push(
       '- When same_language is true, translation may be an empty string or the original text.',
+      '- If a message consists only of code (code blocks or inline code), URLs, and/or @mentions with nothing else to translate, set same_language to true and return the original text unchanged as translation.',
     );
   }
   const instructions = request.instructions.trim();

@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeBrowser } from 'wxt/testing/fake-browser';
 import { type MessageMap, onMessage } from '../../messaging/protocol';
+import * as storage from '../../settings/storage';
 import { getApiKeys, getGlobalSettings } from '../../settings/storage';
 import { originPattern, ProviderSection } from './ProviderSection';
 import { useSettings } from './useSettings';
@@ -52,6 +53,7 @@ describe('ProviderSection', () => {
     const { user, keyInputs } = await renderSection();
     const openaiKey = keyInputs[0] as HTMLInputElement;
     await user.type(openaiKey, 'sk-secret-123');
+    await user.tab();
     await waitFor(async () => {
       expect((await getApiKeys()).openai).toBe('sk-secret-123');
     });
@@ -63,6 +65,26 @@ describe('ProviderSection', () => {
     expect(openaiKey.type).toBe('password');
     await user.click(screen.getAllByRole('button', { name: 'options_showValue' })[0] as Element);
     expect(openaiKey.type).toBe('text');
+  });
+
+  it('키는 글자마다 저장하지 않고 blur 또는 Enter 때 한 번만 저장한다', async () => {
+    const setApiKey = vi.spyOn(storage, 'setApiKey');
+    try {
+      const { user, keyInputs } = await renderSection();
+      await user.type(keyInputs[0] as HTMLInputElement, 'sk-abc');
+      expect(setApiKey).not.toHaveBeenCalled();
+      expect((await getApiKeys()).openai).toBe('');
+      await user.tab();
+      await waitFor(() => expect(setApiKey).toHaveBeenCalledTimes(1));
+      expect(setApiKey).toHaveBeenCalledWith('openai', 'sk-abc');
+
+      await user.type(keyInputs[1] as HTMLInputElement, 'sk-ant{Enter}');
+      await waitFor(() => expect(setApiKey).toHaveBeenCalledTimes(2));
+      expect(setApiKey).toHaveBeenLastCalledWith('anthropic', 'sk-ant');
+      expect((await getApiKeys()).anthropic).toBe('sk-ant');
+    } finally {
+      setApiKey.mockRestore();
+    }
   });
 
   it('커스텀 주소: 권한 거부 → 저장하지 않고 안내 배너', async () => {
