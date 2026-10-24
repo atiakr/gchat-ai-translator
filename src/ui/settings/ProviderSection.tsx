@@ -62,6 +62,7 @@ export function ProviderSection({
   updateApiKey,
 }: ProviderSectionProps) {
   const groupName = useId();
+  const active = settings.activeProvider;
   return (
     <Card title={t('options_sectionProvider')} description={t('options_sectionProviderHelp')}>
       <fieldset className="gat-field" style={{ border: 0, padding: 0, margin: 0 }}>
@@ -73,7 +74,7 @@ export function ProviderSection({
                 type="radio"
                 name={groupName}
                 value={id}
-                checked={settings.activeProvider === id}
+                checked={active === id}
                 onChange={() => updateSettings({ activeProvider: id })}
               />
               <span>{providerLabel(id)}</span>
@@ -81,26 +82,23 @@ export function ProviderSection({
           ))}
         </div>
       </fieldset>
-      {PROVIDER_IDS.map((id) => (
-        <ProviderBlock
-          key={id}
-          provider={id}
-          active={settings.activeProvider === id}
-          apiKey={apiKeys[id]}
-          model={settings.models[id]}
-          baseUrl={settings.customBaseUrl}
-          onModel={(model) => updateSettings({ models: { ...settings.models, [id]: model } })}
-          onBaseUrl={(customBaseUrl) => updateSettings({ customBaseUrl })}
-          onApiKey={(key) => updateApiKey(id, key)}
-        />
-      ))}
+      {/* 탭처럼 고른 서비스의 설정만 보인다. key 로 서비스마다 입력 상태를 새로 시작한다. */}
+      <ProviderBlock
+        key={active}
+        provider={active}
+        apiKey={apiKeys[active]}
+        model={settings.models[active]}
+        baseUrl={settings.customBaseUrl}
+        onModel={(model) => updateSettings({ models: { ...settings.models, [active]: model } })}
+        onBaseUrl={(customBaseUrl) => updateSettings({ customBaseUrl })}
+        onApiKey={(key) => updateApiKey(active, key)}
+      />
     </Card>
   );
 }
 
 interface ProviderBlockProps {
   provider: ProviderId;
-  active: boolean;
   apiKey: string;
   model: string;
   baseUrl: string;
@@ -111,7 +109,6 @@ interface ProviderBlockProps {
 
 function ProviderBlock({
   provider,
-  active,
   apiKey,
   model,
   baseUrl,
@@ -191,8 +188,7 @@ function ProviderBlock({
   };
 
   return (
-    <div className={active ? 'gat-subcard gat-subcard--active' : 'gat-subcard'}>
-      <h3 className="gat-subcard__title">{providerLabel(provider)}</h3>
+    <div className="gat-subcard">
       <Field
         htmlFor={`${ids}-key`}
         label={t('options_apiKey')}

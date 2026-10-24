@@ -86,16 +86,6 @@
   gap: var(--gat-space-3);
 }
 
-.gat-subcard--active {
-  border-color: var(--gat-blue);
-}
-
-.gat-subcard__title {
-  margin: 0;
-  font-size: var(--gat-font-size);
-  font-weight: 600;
-}
-
 /* ---- Button ---- */
 .gat-btn {
   appearance: none;
