@@ -1,8 +1,10 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeBrowser } from 'wxt/testing/fake-browser';
+import * as storage from '../../settings/storage';
 import {
+  getRoomSettings,
   listRoomSettings,
   setApiKey,
   setBrokenState,
@@ -56,6 +58,28 @@ describe('options App', () => {
       expect((await listRoomSettings()).map((r) => r.roomId)).toEqual(['dm/Y']);
     });
     await waitFor(() => expect(screen.queryByText('우리 팀')).toBeNull());
+  });
+
+  it('대화방 지시문은 입력 중엔 저장하지 않고 blur 때 그 방에 한 번 저장한다', async () => {
+    await setRoomSettings('space/X', { name: '우리 팀', instructions: '기존' });
+    const spy = vi.spyOn(storage, 'setRoomSettings');
+    try {
+      const user = userEvent.setup();
+      render(<App />);
+      const field = (await screen.findByLabelText(
+        'options_roomInstructions',
+      )) as HTMLTextAreaElement;
+      expect(field.value).toBe('기존');
+      await user.clear(field);
+      await user.type(field, '반말로');
+      expect(spy).not.toHaveBeenCalled();
+      await user.tab();
+      await waitFor(() => expect(spy).toHaveBeenCalledTimes(1));
+      expect(spy).toHaveBeenCalledWith('space/X', { instructions: '반말로' });
+      expect((await getRoomSettings('space/X'))?.instructions).toBe('반말로');
+    } finally {
+      spy.mockRestore();
+    }
   });
 
   it('번역 기록 지우기는 확인 후 실행된다', async () => {

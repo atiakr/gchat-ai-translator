@@ -327,6 +327,15 @@
   "options_roomOutgoingLang": {
     "message": "발신 언어"
   },
+  "options_roomInstructions": {
+    "message": "대화방 추가 지시문"
+  },
+  "options_roomInstructionsHelp": {
+    "message": "전역 추가 지시문 뒤에 붙어 이 대화방에만 적용됩니다."
+  },
+  "options_roomInstructionsPlaceholder": {
+    "message": "예: 이 방에서는 반말로 번역해 주세요."
+  },
   "options_roomOutgoingDefault": {
     "message": "기본값 사용"
   },

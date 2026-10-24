@@ -1,11 +1,13 @@
 import { useId } from 'react';
 import { t } from '../../i18n/t';
 import type { RoomSettings } from '../../settings/schema';
+import { roomInstructions } from '../../settings/storage';
 import { Button } from '../common/Button';
 import { Card } from '../common/Card';
 import { Select } from '../common/Select';
 import { Toggle } from '../common/Toggle';
 import { roomOutgoingOptions } from './options';
+import { RoomInstructionsField } from './RoomInstructionsField';
 
 export interface RoomsSectionProps {
   rooms: RoomSettings[];
@@ -50,6 +52,10 @@ export function RoomsSection({ rooms, updateRoom, deleteRoom }: RoomsSectionProp
                   />
                 </div>
               </div>
+              <RoomInstructionsField
+                value={roomInstructions(room)}
+                onSave={(instructions) => updateRoom(room.roomId, { instructions })}
+              />
             </li>
           ))}
         </ul>

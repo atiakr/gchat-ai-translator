@@ -20,7 +20,7 @@
 - Visual style: white / dark-gray surfaces, generous spacing, 12px radius (8px for small elements), a single blue accent, minimal shadows, no decoration. The only animation is a 150 ms opacity transition on the loading indicator, disabled under `prefers-reduced-motion`.
 - The sent original sits right after the body of my translated message, collapsed to a small "See original" text button; clicking expands the original below it. The sent message itself is never hidden or changed.
 - The outgoing preview is attached to `document.body` with `position: fixed`, positioned from the composer's screen coordinates.
-- Sync-backed text inputs on the options page save only on blur/Enter to stay under the sync write quota.
+- Sync-backed text inputs on the options page save only on blur/Enter to stay under the sync write quota. The room instructions field (`settings/RoomInstructionsField.tsx`) is shared by the options room list and the popup room card; in the popup it also saves `DEFAULTS.popupAutoSaveMs` after typing stops, because closing the popup by clicking outside may not finish a blur save.
 
 ## Tests
 - Testing Library for per-status rendering and callbacks; jsdom for host placement, original-text wrapping, the toggle, exact restoration (innerHTML comparison, including the quote fixture), and observer silence. If `test.css: true` in `vitest.config.ts` is turned off, style injection tests fail with an empty string.

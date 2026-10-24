@@ -103,6 +103,36 @@ describe('popup App', () => {
     });
   });
 
+  it('방 지시문은 입력이 멈추면 blur 없이도 방 이름과 함께 저장된다', async () => {
+    sendMock.mockResolvedValue({ roomId: 'space/AAA', name: '팀 방' });
+    const user = userEvent.setup();
+    render(<App />);
+    const field = await screen.findByLabelText('options_roomInstructions');
+    await user.type(field, '존댓말로');
+    await waitFor(
+      async () => {
+        expect(await getRoomSettings('space/AAA')).toMatchObject({
+          instructions: '존댓말로',
+          name: '팀 방',
+        });
+      },
+      { timeout: 3000 },
+    );
+  });
+
+  it('방 지시문은 blur 하면 바로 저장된다', async () => {
+    sendMock.mockResolvedValue({ roomId: 'space/AAA', name: '팀 방' });
+    const spy = vi.spyOn(storage, 'setRoomSettings');
+    const user = userEvent.setup();
+    render(<App />);
+    const field = await screen.findByLabelText('options_roomInstructions');
+    await user.type(field, '격식체');
+    await user.tab();
+    await waitFor(() => expect(spy).toHaveBeenCalledWith('space/AAA', expect.anything()));
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect((await getRoomSettings('space/AAA'))?.instructions).toBe('격식체');
+  });
+
   it('방 이름은 화면 이름 → 저장된 이름 → 방 id 순으로 보인다', async () => {
     await setRoomSettings('space/BBB', { name: '저장된 이름' });
     sendMock.mockResolvedValue({ roomId: 'space/BBB' });

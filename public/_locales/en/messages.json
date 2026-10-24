@@ -327,6 +327,15 @@
   "options_roomOutgoingLang": {
     "message": "Outgoing language"
   },
+  "options_roomInstructions": {
+    "message": "Room instructions"
+  },
+  "options_roomInstructionsHelp": {
+    "message": "Added after the global extra instructions and applied only to this room."
+  },
+  "options_roomInstructionsPlaceholder": {
+    "message": "e.g. Use a casual tone in this room."
+  },
   "options_roomOutgoingDefault": {
     "message": "Use default"
   },

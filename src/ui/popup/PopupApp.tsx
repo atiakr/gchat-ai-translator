@@ -3,14 +3,17 @@ import '../common/styles.css';
 import './popup.css';
 import { useEffect, useId, useState } from 'react';
 import { browser } from 'wxt/browser';
+import { DEFAULTS } from '../../config/defaults';
 import { type I18nKey, t } from '../../i18n/t';
 import { sendToTab } from '../../messaging/protocol';
+import { roomInstructions } from '../../settings/storage';
 import { Banner } from '../common/Banner';
 import { Button } from '../common/Button';
 import { Card } from '../common/Card';
 import { Select } from '../common/Select';
 import { Toggle } from '../common/Toggle';
 import { providerLabel, roomOutgoingOptions } from '../settings/options';
+import { RoomInstructionsField } from '../settings/RoomInstructionsField';
 import { useSystemTheme } from '../settings/useSystemTheme';
 import { usePopupSettings, useRoomSettings } from './usePopupSettings';
 
@@ -139,6 +142,11 @@ export function RoomCard({ room }: { room: CurrentRoom }) {
           onChange={(v) => update({ outgoingLang: v || undefined, ...withName })}
         />
       </div>
+      <RoomInstructionsField
+        value={roomInstructions(roomSettings)}
+        onSave={(instructions) => update({ instructions, ...withName })}
+        autoSaveMs={DEFAULTS.popupAutoSaveMs}
+      />
       {saveError && (
         <Banner tone="error">
           {saveError.kind === 'quota'
