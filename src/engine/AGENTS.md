@@ -20,10 +20,11 @@
 ## Implementation
 - `createEngine({ getProvider, now, sleep, limits })` takes its dependencies so tests can inject a fake provider and fake time. `startBackground()` registers handlers and listeners with real dependencies and returns a teardown function.
 - The item id sent to the provider is the history key (unique within a batch, so the pre- and post-edit versions of one message never collide in the same batch).
+- The instructions sent to the provider are the global extra instructions followed by the room's instructions (`combineInstructions`, blank parts dropped), read per call with the room id. That combined string is what goes into the history key hash and the batch group key, so changing a room's instructions misses old history.
 - Batch group key = (room, target language, provider, model, instructions). A batch flushes at 10 items or 150 ms after its first item.
 - History is stored as a map + order array in a single entry each, `local:translationCache` and `local:sentOriginals`; writes are serialized inside the module to avoid read-modify-write races. The options page's clear-history depends on these two key names.
 - Badge priority: invalid key > no key > broken page structure.
 
 ## Tests
 - Fake timers for the queue and retry, a fake provider for the engine, `fakeBrowser` + `vi.fn()` for the router.
-- Tests that must stay: no calls when off or without a key, no call on history hit, dedupe to 1 call, retryable errors / count / backoff, oldest history evicted over the cap, base URL included in the key for the compatible provider, auth → invalid key + badge, no keys in broadcasts.
+- Tests that must stay: no calls when off or without a key, no call on history hit, dedupe to 1 call, retryable errors / count / backoff, oldest history evicted over the cap, base URL included in the key for the compatible provider, room instructions applied only to that room's incoming and outgoing calls, auth → invalid key + badge, no keys in broadcasts.

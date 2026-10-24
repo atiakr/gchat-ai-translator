@@ -1,9 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeBrowser } from 'wxt/testing/fake-browser';
 import type { TranslateBatchItem } from '../messaging/protocol';
-import { getInvalidKeys, setApiKey, setGlobalSettings, setInvalidKey } from '../settings/storage';
+import {
+  getInvalidKeys,
+  setApiKey,
+  setGlobalSettings,
+  setInvalidKey,
+  setRoomSettings,
+} from '../settings/storage';
 import * as cache from './cache';
-import { createEngine, type EngineDeps } from './engine';
+import { combineInstructions, createEngine, type EngineDeps } from './engine';
 import { hashString } from './hash';
 import {
   type ProviderConfig,
@@ -350,6 +356,50 @@ describe('translateOutgoing', () => {
     expect(await engine.translateOutgoing('r', 'hi', 'en')).toEqual({
       ok: false,
       errorKind: 'parse',
+    });
+  });
+});
+
+describe('대화방별 추가 지시문', () => {
+  it('combineInstructions: 전역 뒤에 방을 붙이고 빈 쪽은 뺀다', () => {
+    expect(combineInstructions(' 전역 ', ' 방 ')).toBe('전역\n\n방');
+    expect(combineInstructions('', '방')).toBe('방');
+    expect(combineInstructions('전역', '  ')).toBe('전역');
+    expect(combineInstructions('', '')).toBe('');
+  });
+
+  it('방 지시문은 그 방의 요청에만 전역 지시문 뒤에 붙는다', async () => {
+    await setGlobalSettings({ instructions: '전역' });
+    await setRoomSettings('r1', { instructions: '방1' });
+    const { engine, translate } = engineWith();
+    await engine.translateBatch('r1', 'ko', [item('a')]);
+    await engine.translateBatch('r2', 'ko', [item('b')]);
+    const byText = new Map(
+      translate.mock.calls.map(([req]) => [req.items[0]?.text, req.instructions]),
+    );
+    expect(byText.get('text-a')).toBe('전역\n\n방1');
+    expect(byText.get('text-b')).toBe('전역');
+  });
+
+  it('방 지시문을 바꾸면 같은 메시지도 기록에 적중하지 않고 다시 호출한다', async () => {
+    await setRoomSettings('r1', { instructions: '존댓말' });
+    const { engine, translate } = engineWith();
+    await engine.translateBatch('r1', 'ko', [item('a')]);
+    await engine.translateBatch('r1', 'ko', [item('a')]);
+    expect(translate).toHaveBeenCalledTimes(1);
+    await setRoomSettings('r1', { instructions: '반말' });
+    await engine.translateBatch('r1', 'ko', [item('a')]);
+    expect(translate).toHaveBeenCalledTimes(2);
+    expect(translate.mock.calls[1]?.[0].instructions).toBe('반말');
+  });
+
+  it('발신 번역에도 방 지시문이 들어간다', async () => {
+    await setRoomSettings('r1', { instructions: '격식체' });
+    const { engine, translate } = engineWith();
+    await engine.translateOutgoing('r1', '안녕', 'en');
+    expect(translate.mock.calls[0]?.[0]).toMatchObject({
+      mode: 'outgoing',
+      instructions: '격식체',
     });
   });
 });

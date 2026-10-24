@@ -6,7 +6,14 @@ import type {
 } from '../messaging/protocol';
 import { getProvider as defaultGetProvider } from '../providers/index';
 import type { CacheEntry } from '../settings/schema';
-import { canTranslate, getApiKeys, getGlobalSettings, setInvalidKey } from '../settings/storage';
+import {
+  canTranslate,
+  getApiKeys,
+  getGlobalSettings,
+  getRoomSettings,
+  roomInstructions,
+  setInvalidKey,
+} from '../settings/storage';
 import { refreshBadge } from './badge';
 import * as cache from './cache';
 import { createSemaphorePool } from './concurrency';
@@ -95,8 +102,17 @@ function errorKindOf(err: unknown): ErrorKind {
   return err instanceof ProviderError ? err.kind : 'server';
 }
 
-async function loadContext(): Promise<CallContext> {
-  const [settings, keys] = await Promise.all([getGlobalSettings(), getApiKeys()]);
+/** 전역 지시문 뒤에 방 지시문을 이어 붙인다. 둘 중 빈 쪽은 빠진다. */
+export function combineInstructions(global: string, room: string): string {
+  return [global.trim(), room.trim()].filter(Boolean).join('\n\n');
+}
+
+async function loadContext(roomId: string): Promise<CallContext> {
+  const [settings, keys, room] = await Promise.all([
+    getGlobalSettings(),
+    getApiKeys(),
+    getRoomSettings(roomId),
+  ]);
   const provider = settings.activeProvider;
   const config: ProviderConfig = {
     provider,
@@ -104,11 +120,8 @@ async function loadContext(): Promise<CallContext> {
     model: settings.models[provider],
   };
   if (provider === 'openai_compatible') config.baseUrl = settings.customBaseUrl;
-  return {
-    config,
-    instructions: settings.instructions,
-    instructionsHash: hashString(settings.instructions),
-  };
+  const instructions = combineInstructions(settings.instructions, roomInstructions(room));
+  return { config, instructions, instructionsHash: hashString(instructions) };
 }
 
 export function createEngine(deps: EngineDeps = {}): Engine {
@@ -245,7 +258,7 @@ export function createEngine(deps: EngineDeps = {}): Engine {
       const kind = gateErrorKind(gate.reason);
       return items.map((i) => errorItem(i.messageId, kind));
     }
-    const ctx = await loadContext();
+    const ctx = await loadContext(roomId);
     const { config } = ctx;
     const keys = items.map((i) =>
       cache.cacheKey({
@@ -291,13 +304,13 @@ export function createEngine(deps: EngineDeps = {}): Engine {
   }
 
   async function translateOutgoing(
-    _roomId: string,
+    roomId: string,
     text: string,
     targetLang: string,
   ): Promise<OutgoingResult> {
     const gate = await canTranslate();
     if (!gate.ok) return { ok: false, errorKind: gateErrorKind(gate.reason) };
-    const ctx = await loadContext();
+    const ctx = await loadContext(roomId);
     try {
       const results = await callProvider(ctx, {
         items: [{ id: 'out', text }],
