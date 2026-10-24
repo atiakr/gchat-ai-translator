@@ -695,7 +695,11 @@ export function createContentController(overrides: Partial<ContentDeps> = {}): C
       restoreOwn(added);
       mountOutgoing();
     }
-    if (changed.length > 0) process(changed);
+    if (changed.length > 0) {
+      process(changed);
+      // Google 이 내 메시지 본문을 다시 그려 원문 표시가 지워졌으면 다시 붙인다.
+      restoreOwn(changed);
+    }
   }
 
   /* ---------------------------------------------------------------- */
