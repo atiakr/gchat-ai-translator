@@ -21,6 +21,10 @@ export const DEFAULTS = {
   maxMessageChars: 2000,
   /** 대화방당 자동 번역 상한(건, 최신순). 초과 시 skipped_limit. */
   maxAutoPerRoom: 200,
+  /** 대화방별 추가 지시문 최대 길이(자). 방 설정 sync 항목 하나(8KB) 안에 들어가도록 둔다. */
+  maxRoomInstructionsChars: 1000,
+  /** 팝업의 텍스트 입력을 입력이 멈춘 뒤 저장하기까지 기다리는 시간(ms). */
+  popupAutoSaveMs: 1000,
   /**
    * 호출 전 같은 언어 판정 기준. 글자가 있는 토큰 중 대상 언어 문자를 품은 토큰이 이 비율 이상이면
    * 호출하지 않고 same_language 로 둔다(한국어·일본어·태국어만 판정).

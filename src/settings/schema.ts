@@ -40,6 +40,8 @@ export interface RoomSettings {
   name?: string;
   incomingDisabled: boolean;
   outgoingLang?: string;
+  /** 이 방에만 적용할 추가 지시문. 전역 지시문 뒤에 이어 붙는다. */
+  instructions?: string;
 }
 
 /** 이 기기에만 저장되는 API 키(local). */

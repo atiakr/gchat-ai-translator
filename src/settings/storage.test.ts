@@ -9,8 +9,10 @@ import {
   getApiKeys,
   getGlobalSettings,
   getInvalidKeys,
+  getRoomSettings,
   listRoomSettings,
   removeRoomSettings,
+  roomInstructions,
   setApiKey,
   setGlobalSettings,
   setInvalidKey,
@@ -86,6 +88,41 @@ describe('storage 영역 규칙', () => {
     expect(list.find((r) => r.roomId === 'dm/BBB')?.incomingDisabled).toBe(false);
     await removeRoomSettings('room/AAA');
     expect((await listRoomSettings()).map((r) => r.roomId)).toEqual(['dm/BBB']);
+  });
+
+  it('방 지시문은 방 항목(sync)에 저장되고, 상한을 넘으면 자르며, 비우면 필드를 지운다', async () => {
+    await setRoomSettings('room/AAA', { instructions: '존댓말로' });
+    expect((await fakeBrowser.storage.sync.get('room:room/AAA'))['room:room/AAA']).toMatchObject({
+      instructions: '존댓말로',
+    });
+    expect(await fakeBrowser.storage.local.get(null)).toEqual({});
+
+    await setRoomSettings('room/AAA', {
+      instructions: 'x'.repeat(DEFAULTS.maxRoomInstructionsChars + 5),
+    });
+    expect((await getRoomSettings('room/AAA'))?.instructions).toHaveLength(
+      DEFAULTS.maxRoomInstructionsChars,
+    );
+
+    await setRoomSettings('room/AAA', { instructions: '  \n ' });
+    const room = await getRoomSettings('room/AAA');
+    expect(room && 'instructions' in room).toBe(false);
+    expect(roomInstructions(room)).toBe('');
+    // 다른 필드만 바꾸면 지시문은 그대로 둔다.
+    await setRoomSettings('room/AAA', { instructions: '용어 유지' });
+    await setRoomSettings('room/AAA', { incomingDisabled: true });
+    expect(roomInstructions(await getRoomSettings('room/AAA'))).toBe('용어 유지');
+  });
+
+  it('roomInstructions 는 없거나 손상된 값이면 빈 문자열', () => {
+    expect(roomInstructions(null)).toBe('');
+    expect(
+      roomInstructions({
+        roomId: 'r',
+        incomingDisabled: false,
+        instructions: 3 as unknown as string,
+      }),
+    ).toBe('');
   });
 });
 

@@ -1,6 +1,6 @@
 import { browser } from 'wxt/browser';
 import { storage } from 'wxt/utils/storage';
-import type { ProviderId } from '../config/defaults';
+import { DEFAULTS, type ProviderId } from '../config/defaults';
 import { migrateGlobalSettings } from './migrate';
 import {
   type ApiKeys,
@@ -71,8 +71,18 @@ export async function setRoomSettings(
 ): Promise<RoomSettings> {
   const current = (await getRoomSettings(roomId)) ?? { roomId, incomingDisabled: false };
   const next: RoomSettings = { ...current, ...patch, roomId };
+  if ('instructions' in patch) {
+    const text = (patch.instructions ?? '').slice(0, DEFAULTS.maxRoomInstructionsChars);
+    if (text.trim()) next.instructions = text;
+    else delete next.instructions;
+  }
   await wrapQuota(storage.setItem(roomSettingsKey(roomId), next));
   return next;
+}
+
+/** 방 설정의 추가 지시문. 없거나 손상된 값이면 빈 문자열. */
+export function roomInstructions(room: RoomSettings | null): string {
+  return typeof room?.instructions === 'string' ? room.instructions : '';
 }
 
 export async function removeRoomSettings(roomId: string): Promise<void> {
