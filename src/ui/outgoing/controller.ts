@@ -11,9 +11,9 @@ import {
   getRoomSettings as storageGetRoomSettings,
   setRoomSettings as storageSetRoomSettings,
 } from '../../settings/storage';
+import { createIncomingMounts } from '../incoming/mount';
 import { createShadowHost, type ShadowHost } from './host';
 import { type OutgoingError, PreviewPanel } from './PreviewPanel';
-import { SentOriginal } from './SentOriginal';
 import { TranslateButton } from './TranslateButton';
 
 /**
@@ -160,7 +160,13 @@ export function createOutgoingController(
   let translateSeq = 0;
   let lastFireAt: number | null = null;
   let sentWatch: SentWatch | null = null;
-  const sentMounts = new Map<string, { host: ShadowHost; root: Root }>();
+  /** 번역해 보낸 내 메시지: 본문(보낸 번역문)을 숨기고 그 자리에 내 원문을 그린다. 수신 쪽과 묶음을 나눈다. */
+  const sentViews = createIncomingMounts();
+  /**
+   * messageId → 보낸 글(정규화)과 내 원문. Google 이 본문을 다시 그려 표시가 지워지면 조회 없이 다시 붙인다.
+   * 메시지를 고쳐 보낸 글이 달라졌으면 쓰지 않는다.
+   */
+  const sentOriginals = new Map<string, { sentText: string; original: string }>();
   let destroyed = false;
 
   const roomId = () => mounted?.roomId ?? '';
@@ -335,39 +341,23 @@ export function createOutgoingController(
 
   /* ---------------- 내 원문 ---------------- */
 
-  function alreadyMounted(messageId: string, anchor: HTMLElement): boolean {
-    const existing = sentMounts.get(messageId);
-    if (existing?.host.el.isConnected) return true;
-    if (existing) sentMounts.delete(messageId);
-    return anchor.nextElementSibling instanceof HTMLElement
-      ? anchor.nextElementSibling.dataset.gatOutgoing === 'sent-original'
-      : false;
-  }
-
-  /**
-   * 말풍선 안 여백은 본문 요소 자체의 padding 이라, 본문 바로 뒤에 놓인 호스트는 말풍선 가장자리에 붙는다.
-   * 본문의 좌우·아래 여백을 그대로 옮겨 본문 글과 같은 선에 맞춘다.
-   */
-  function matchBodyInset(el: HTMLElement, body: HTMLElement): void {
-    try {
-      const cs = getComputedStyle(body);
-      el.style.padding = `0 ${cs.paddingRight} ${cs.paddingBottom} ${cs.paddingLeft}`;
-    } catch {
-      // 스타일을 못 읽으면 여백 없이 둔다.
-    }
+  function sentViewAttached(container: HTMLElement): boolean {
+    return sentViews.getMounted(container)?.isAttached() === true;
   }
 
   function mountSentOriginal(container: HTMLElement, original: string): void {
     const info = adapter.readMessage(container);
     if (!info) return;
     const anchor = adapter.getTranslationAnchor(container) ?? info.bodyEl;
-    if (!anchor || alreadyMounted(info.messageId, anchor)) return;
-    const host = createShadowHost('sent-original', adapter.getChatTheme());
-    matchBodyInset(host.el, anchor);
-    anchor.insertAdjacentElement('afterend', host.el);
-    const root = createRoot(host.mount);
-    root.render(createElement(SentOriginal, { original }));
-    sentMounts.set(info.messageId, { host, root });
+    if (!anchor) return;
+    sentOriginals.set(info.messageId, { sentText: normalizeSentText(info.text), original });
+    if (sentViewAttached(container)) return;
+    sentViews.mount(container, anchor, adapter.getChatTheme(), {
+      status: 'translated',
+      translation: original,
+      variant: 'sent',
+      onRetry: () => {},
+    });
   }
 
   function stopSentWatch(): void {
@@ -544,14 +534,23 @@ export function createOutgoingController(
       if (destroyed) return;
       const info = adapter.readMessage(container);
       if (!info?.isOwn || !info.hasBody || !info.text.trim()) continue;
-      const anchor = adapter.getTranslationAnchor(container) ?? info.bodyEl;
-      if (!anchor || alreadyMounted(info.messageId, anchor)) continue;
+      const known = sentOriginals.get(info.messageId);
+      const same = known !== undefined && known.sentText === normalizeSentText(info.text);
+      if (same && sentViewAttached(container)) continue;
+      // 다시 그려졌거나 고쳐진 메시지의 옛 표시는 걷어낸다(원래 본문으로 되돌림).
+      sentViews.getMounted(container)?.unmount();
+      if (same) {
+        mountSentOriginal(container, known.original);
+        continue;
+      }
       try {
         const found = await deps.sendMessage('sentOriginal.lookup', {
           roomId: info.roomId || roomId(),
           sentText: info.text,
         });
-        if (found && container.isConnected) mountSentOriginal(container, found.original);
+        if (found && container.isConnected && !destroyed) {
+          mountSentOriginal(container, found.original);
+        }
       } catch {
         // 조회 실패는 표시만 건너뛴다.
       }
@@ -569,11 +568,8 @@ export function createOutgoingController(
     state = initialState();
     closePanelHost();
     unmountButton();
-    for (const { root, host } of sentMounts.values()) {
-      root.unmount();
-      host.remove();
-    }
-    sentMounts.clear();
+    sentViews.unmountAll();
+    sentOriginals.clear();
     activeComposer = null;
     destroyed = true;
   }

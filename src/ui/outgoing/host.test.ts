@@ -3,7 +3,7 @@ import { createShadowHost } from './host';
 
 describe('outgoing createShadowHost', () => {
   it('공용 shadow 호스트 위에 만들어져 contain: content 와 토큰 CSS 를 가진다', () => {
-    for (const kind of ['panel', 'sent-original', 'button'] as const) {
+    for (const kind of ['panel', 'button'] as const) {
       const host = createShadowHost(kind, 'dark');
       expect(host.el.dataset.gatOutgoing).toBe(kind);
       expect(host.el.style.contain).toBe('content');
@@ -19,7 +19,6 @@ describe('outgoing createShadowHost', () => {
   it('버튼만 inline-flex, 나머지는 block', () => {
     expect(createShadowHost('button', 'light').el.style.display).toBe('inline-flex');
     expect(createShadowHost('panel', 'light').el.style.display).toBe('block');
-    expect(createShadowHost('sent-original', 'light').el.style.display).toBe('block');
   });
 
   it('setHidden 은 인라인 display 까지 바꿔 실제로 숨기고, 다시 보이면 원래 display 로 돌아간다', () => {

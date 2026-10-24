@@ -6,7 +6,7 @@ import stylesCss from './styles.css?inline';
  * 발신 번역 UI 의 Shadow DOM 호스트. 격리·토큰 주입은 공용 `src/ui/shadow.ts` 가 하고,
  * 여기서는 발신 UI 표식(`data-gat-outgoing`)과 React 를 붙일 컨테이너만 더한다.
  */
-export type OutgoingHostKind = 'button' | 'panel' | 'sent-original';
+export type OutgoingHostKind = 'button' | 'panel';
 
 export interface ShadowHost {
   /** 페이지 DOM 에 삽입되는 호스트 요소(`data-gat-outgoing="<kind>"`). */

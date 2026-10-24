@@ -53,6 +53,22 @@ describe('IncomingView', () => {
     expect(toggle.getAttribute('aria-pressed')).toBe('true');
   });
 
+  it('sent → 내 원문을 그리고, 토글은 [보낸 번역 보기] / [원문보기] 로 바뀐다', () => {
+    const props = {
+      status: 'translated',
+      translation: '안녕하세요',
+      onRetry: () => {},
+      onToggleOriginal: () => {},
+      variant: 'sent',
+    } as const;
+    const { container, rerender } = render(<IncomingView {...props} originalVisible={false} />);
+    expect(screen.getByText('안녕하세요')).toBeInTheDocument();
+    const toggle = container.querySelector('[data-gat="toggle"]') as HTMLElement;
+    expect(toggle.textContent).toBe('outgoing_seeSentTranslation');
+    rerender(<IncomingView {...props} originalVisible={true} />);
+    expect(toggle.textContent).toBe('outgoing_seeMyOriginal');
+  });
+
   it('error → 짧은 이유 + 재시도 버튼, 클릭하면 onRetry', () => {
     const onRetry = vi.fn();
     const { container } = renderView({ status: 'error', errorKind: 'rate_limit', onRetry });

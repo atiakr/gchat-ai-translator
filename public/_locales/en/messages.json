@@ -167,11 +167,11 @@
   "outgoing_error_unknown": {
     "message": "The translation request failed. Try again."
   },
-  "outgoing_showMyOriginal": {
-    "message": "See original"
+  "outgoing_seeSentTranslation": {
+    "message": "See sent translation"
   },
-  "outgoing_hideMyOriginal": {
-    "message": "Hide original"
+  "outgoing_seeMyOriginal": {
+    "message": "See original"
   },
   "bg_badgeNoKey": {
     "message": "No API key. Enter a key in the settings."

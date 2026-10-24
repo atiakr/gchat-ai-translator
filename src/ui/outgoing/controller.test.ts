@@ -3,6 +3,7 @@ import { DEFAULTS } from '../../config/defaults';
 import type { ComposerInfo, MessageInfo, MessageObserverCallback } from '../../gchat/adapter';
 import type { MessageKind, MessageMap } from '../../messaging/protocol';
 import { DEFAULT_GLOBAL_SETTINGS, type RoomSettings } from '../../settings/schema';
+import { unmountAll } from '../incoming/mount';
 import {
   createOutgoingController,
   type OutgoingAdapter,
@@ -95,8 +96,6 @@ function makeAdapter(): FakeAdapter {
       c.dataset.id = id;
       const body = document.createElement('div');
       body.className = 'body';
-      // 실제 화면처럼 말풍선 안 여백은 본문 요소 자체의 padding 이다
-      body.style.padding = '8px 12px';
       body.textContent = text;
       c.append(body);
       list.append(c);
@@ -194,8 +193,8 @@ function setup(opts: { room?: Partial<RoomSettings>; outgoingLang?: string } = {
 
 const buttonHost = () => document.querySelector<HTMLElement>('[data-gat-outgoing="button"]');
 const panelHost = () => document.querySelector<HTMLElement>('[data-gat-outgoing="panel"]');
-const sentHosts = () =>
-  Array.from(document.querySelectorAll<HTMLElement>('[data-gat-outgoing="sent-original"]'));
+const sentHosts = () => Array.from(document.querySelectorAll<HTMLElement>('[data-gat-incoming]'));
+const wrapperOf = (c: HTMLElement) => c.querySelector<HTMLElement>('[data-gat-original]');
 
 let active: OutgoingController[] = [];
 function track(h: Harness): Harness {
@@ -622,10 +621,14 @@ describe('sent original', () => {
     h.adapter.emitAdded([other, mine]);
     const hosts = sentHosts();
     expect(hosts).toHaveLength(1);
-    expect(hosts[0]?.previousElementSibling).toBe(mine.querySelector('.body'));
+    // 보낸 번역문(Google 본문)은 감싸 숨기고, 그 바로 뒤 본문 안에 내 원문 호스트를 둔다
+    const wrapper = wrapperOf(mine);
+    expect(wrapper?.parentElement).toBe(mine.querySelector('.body'));
+    expect(wrapper?.hidden).toBe(true);
+    expect(wrapper?.textContent).toBe('[en] 안녕');
+    expect(hosts[0]?.previousElementSibling).toBe(wrapper);
     expect(hosts[0]?.shadowRoot).not.toBeNull();
-    // 본문의 좌우·아래 여백을 그대로 받아 본문 글과 같은 선에 놓인다
-    expect(hosts[0]?.style.padding).toBe('0px 12px 8px');
+    expect(wrapperOf(other)).toBeNull();
     expect(h.adapter.disconnectCount).toBe(1);
     // 같은 메시지에 두 번 달지 않는다
     await h.controller.restoreSentOriginals([mine]);
@@ -672,6 +675,53 @@ describe('sent original', () => {
     ]);
     const hosts = sentHosts();
     expect(hosts).toHaveLength(1);
-    expect(hosts[0]?.previousElementSibling).toBe(mine.querySelector('.body'));
+    expect(hosts[0]?.previousElementSibling).toBe(wrapperOf(mine));
+  });
+
+  it('Google 이 본문을 다시 그려 표시가 지워지면 조회 없이 다시 붙인다', async () => {
+    const h = track(setup());
+    h.controller.mount(ROOM, true);
+    h.msg.lookup = async () => ({ original: '안녕하세요' });
+    const mine = h.adapter.addOwnMessage('a', 'Hello');
+    await h.controller.restoreSentOriginals([mine]);
+    const body = mine.querySelector<HTMLElement>('.body');
+    if (!body) throw new Error('no body');
+    body.textContent = 'Hello';
+    expect(sentHosts()).toHaveLength(0);
+    await h.controller.restoreSentOriginals([mine]);
+    expect(h.msg.of('sentOriginal.lookup')).toHaveLength(1);
+    expect(sentHosts()).toHaveLength(1);
+    expect(wrapperOf(mine)?.hidden).toBe(true);
+  });
+
+  it('메시지를 고쳐 보낸 글이 바뀌면 옛 원문을 걷어내고 다시 조회한다', async () => {
+    const h = track(setup());
+    h.controller.mount(ROOM, true);
+    h.msg.lookup = async ({ sentText }) =>
+      sentText === 'Hello' ? { original: '안녕하세요' } : null;
+    const mine = h.adapter.addOwnMessage('a', 'Hello');
+    await h.controller.restoreSentOriginals([mine]);
+    const info = h.adapter.infos.get(mine);
+    if (!info) throw new Error('no info');
+    h.adapter.infos.set(mine, { ...info, text: 'Hello again' });
+    await h.controller.restoreSentOriginals([mine]);
+    expect(h.msg.of('sentOriginal.lookup')).toHaveLength(2);
+    expect(sentHosts()).toHaveLength(0);
+    expect(wrapperOf(mine)).toBeNull();
+    expect(mine.querySelector('.body')?.textContent).toBe('Hello');
+  });
+
+  it('수신 쪽 unmountAll 에는 지워지지 않고, destroy 하면 본문을 원래대로 되돌린다', async () => {
+    const h = track(setup());
+    h.controller.mount(ROOM, true);
+    h.msg.lookup = async () => ({ original: '안녕하세요' });
+    const mine = h.adapter.addOwnMessage('a', 'Hello');
+    const before = mine.innerHTML;
+    await h.controller.restoreSentOriginals([mine]);
+    unmountAll();
+    expect(sentHosts()).toHaveLength(1);
+    h.controller.destroy();
+    expect(sentHosts()).toHaveLength(0);
+    expect(mine.innerHTML).toBe(before);
   });
 });

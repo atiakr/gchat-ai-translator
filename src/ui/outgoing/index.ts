@@ -13,5 +13,4 @@ export {
   PreviewPanel,
   type PreviewPanelProps,
 } from './PreviewPanel';
-export { SentOriginal, type SentOriginalProps } from './SentOriginal';
 export { TranslateButton, type TranslateButtonProps } from './TranslateButton';

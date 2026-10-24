@@ -34,6 +34,8 @@ interface Wrap {
 }
 
 interface Entry {
+  /** 이 항목을 가진 묶음. 제거할 때 여기서 지운다. */
+  entries: Map<HTMLElement, Entry>;
   container: HTMLElement;
   /** 본문 요소. 호스트와 원문 감싸개는 이 안에 있다. */
   anchor: HTMLElement;
@@ -46,8 +48,6 @@ interface Entry {
   wrap: Wrap | null;
   alive: boolean;
 }
-
-const entries = new Map<HTMLElement, Entry>();
 
 /* ------------------------------------------------------------------ */
 /* 원문 감싸기 · 되돌리기                                                */
@@ -161,7 +161,7 @@ function toggleOriginal(entry: Entry): void {
 function destroy(entry: Entry): void {
   if (!entry.alive) return;
   entry.alive = false;
-  entries.delete(entry.container);
+  entry.entries.delete(entry.container);
   try {
     entry.root.unmount();
   } catch {
@@ -182,12 +182,9 @@ function isAttached(entry: Entry): boolean {
   return true;
 }
 
-/**
- * 메시지 컨테이너 하나에 번역 UI 호스트 하나를 anchor(본문) **안**에 둔다. translated 면 메시지 자체의 글(인용 블록
- * 제외)을 감싸 숨기고 그 자리 바로 뒤에 번역문을 그린다. 이미 있으면 재사용하며, 본문이 다시 그려져 감싸개·호스트가
- * 지워졌으면 복구한다. anchor 가 없거나 문서에서 떨어져 있으면 null (절대 throw 하지 않음).
- */
-export function mountIncoming(
+/** `mountIncoming` 의 본체. 넘긴 묶음에 항목을 둔다. */
+function mountIn(
+  entries: Map<HTMLElement, Entry>,
   container: HTMLElement | null | undefined,
   anchor: HTMLElement | null | undefined,
   theme: Theme,
@@ -231,6 +228,7 @@ export function mountIncoming(
           onRetry: props.onRetry ?? prev?.onRetry ?? (() => {}),
           translation: 'translation' in props ? props.translation : prev?.translation,
           errorKind: 'errorKind' in props ? props.errorKind : prev?.errorKind,
+          variant: props.variant ?? prev?.variant,
         };
         // 번역 상태를 벗어나거나 번역문이 바뀌면 다시 번역문을 보이는 쪽으로 돌린다.
         if (next.status !== 'translated' || next.translation !== prev?.translation) {
@@ -250,6 +248,7 @@ export function mountIncoming(
       },
     };
     const entry: Entry = {
+      entries,
       container,
       anchor,
       host,
@@ -273,17 +272,56 @@ export function mountIncoming(
   }
 }
 
+export interface IncomingMounts {
+  mount: typeof mountIncoming;
+  getMounted: typeof getMounted;
+  unmountAll: typeof unmountAll;
+  mountedCount: typeof mountedCount;
+}
+
+/**
+ * 호스트 묶음 하나를 만든다. 수신 번역은 아래 기본 묶음을 쓰고, 번역해 보낸 내 메시지(원문을 그 자리에 보임)는
+ * 발신 UI 가 따로 만든 묶음을 써서 수신 쪽 `unmountAll` 에 휩쓸리지 않는다.
+ */
+export function createIncomingMounts(): IncomingMounts {
+  const entries = new Map<HTMLElement, Entry>();
+  return {
+    mount: (container, anchor, theme, initial) =>
+      mountIn(entries, container, anchor, theme, initial),
+    getMounted: (container) => (container ? (entries.get(container)?.handle ?? null) : null),
+    unmountAll: () => {
+      for (const entry of Array.from(entries.values())) destroy(entry);
+    },
+    mountedCount: () => entries.size,
+  };
+}
+
+const defaultMounts = createIncomingMounts();
+
+/**
+ * 메시지 컨테이너 하나에 번역 UI 호스트 하나를 anchor(본문) **안**에 둔다. translated 면 메시지 자체의 글(인용 블록
+ * 제외)을 감싸 숨기고 그 자리 바로 뒤에 번역문을 그린다. 이미 있으면 재사용하며, 본문이 다시 그려져 감싸개·호스트가
+ * 지워졌으면 복구한다. anchor 가 없거나 문서에서 떨어져 있으면 null (절대 throw 하지 않음).
+ */
+export function mountIncoming(
+  container: HTMLElement | null | undefined,
+  anchor: HTMLElement | null | undefined,
+  theme: Theme,
+  initial?: IncomingProps,
+): IncomingHandle | null {
+  return defaultMounts.mount(container, anchor, theme, initial);
+}
+
 export function getMounted(container: HTMLElement | null | undefined): IncomingHandle | null {
-  if (!container) return null;
-  return entries.get(container)?.handle ?? null;
+  return defaultMounts.getMounted(container);
 }
 
 /** 전역 스위치 끔·방 끔: 모든 호스트를 즉시 제거하고 감쌌던 원문을 제자리로 되돌린다. */
 export function unmountAll(): void {
-  for (const entry of Array.from(entries.values())) destroy(entry);
+  defaultMounts.unmountAll();
 }
 
 /** 테스트·디버그용. 현재 마운트된 컨테이너 수. */
 export function mountedCount(): number {
-  return entries.size;
+  return defaultMounts.mountedCount();
 }

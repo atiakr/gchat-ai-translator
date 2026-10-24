@@ -277,39 +277,3 @@
   padding: var(--gat-space-1) var(--gat-space-3);
   font-size: var(--gat-font-size-sm);
 }
-
-/* ---------- 내 원문 (보낸 메시지 아래, 평소엔 접힘) ---------- */
-.gat-sent-original {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--gat-space-1);
-  font-size: var(--gat-font-size-sm);
-  color: var(--gat-fg-muted);
-}
-
-.gat-sent-original__toggle {
-  padding: 0;
-  border: 0;
-  border-radius: var(--gat-radius-sm);
-  background: none;
-  font: inherit;
-  color: inherit;
-  white-space: nowrap;
-  cursor: pointer;
-}
-
-.gat-sent-original__toggle:hover {
-  color: var(--gat-blue);
-}
-
-.gat-sent-original__toggle:focus-visible {
-  outline: none;
-  box-shadow: var(--gat-focus);
-}
-
-.gat-sent-original__text {
-  color: var(--gat-fg-secondary);
-  white-space: pre-wrap;
-  word-break: break-word;
-}
