@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ProviderError } from '../engine/types';
 import { _resetOpenAiState, openaiProvider } from './openai';
 import { lastRequest, makeConfig, makeRequest, okOutput, openaiBody, stubFetch } from './testUtils';
+import { setUsageListener } from './usage';
 
 async function kindOf(p: Promise<unknown>): Promise<string | undefined> {
   try {
@@ -15,7 +16,43 @@ async function kindOf(p: Promise<unknown>): Promise<string | undefined> {
 
 describe('openaiProvider', () => {
   beforeEach(() => _resetOpenAiState());
-  afterEach(() => vi.unstubAllGlobals());
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    setUsageListener(null);
+  });
+
+  it('응답의 usage 를 서비스 id·모델과 함께 보고한다; 파싱에 실패해도 보고한다', async () => {
+    const listener = vi.fn();
+    setUsageListener(listener);
+    stubFetch({
+      body: {
+        ...openaiBody(okOutput(['a', 'b'])),
+        usage: { prompt_tokens: 40, completion_tokens: 9 },
+      },
+    });
+    await openaiProvider.translate(makeRequest(), makeConfig());
+    expect(listener).toHaveBeenCalledWith({
+      provider: 'openai',
+      model: 'gpt-5-mini',
+      usage: { inputTokens: 40, outputTokens: 9 },
+    });
+    listener.mockClear();
+    stubFetch({
+      body: { ...openaiBody('not json at all'), usage: { prompt_tokens: 5, completion_tokens: 1 } },
+    });
+    expect(await kindOf(openaiProvider.translate(makeRequest(), makeConfig()))).toBe('parse');
+    expect(listener).toHaveBeenCalledWith(
+      expect.objectContaining({ usage: { inputTokens: 5, outputTokens: 1 } }),
+    );
+  });
+
+  it('usage 가 없는 응답은 보고하지 않는다', async () => {
+    const listener = vi.fn();
+    setUsageListener(listener);
+    stubFetch({ body: openaiBody(okOutput(['a', 'b'])) });
+    await openaiProvider.translate(makeRequest(), makeConfig());
+    expect(listener).not.toHaveBeenCalled();
+  });
 
   it('요청 본문: model, messages, response_format(json_schema strict) + 헤더', async () => {
     const fetchFn = stubFetch({ body: openaiBody(okOutput(['a', 'b'])) });

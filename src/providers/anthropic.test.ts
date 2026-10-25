@@ -9,6 +9,7 @@ import {
   okOutput,
   stubFetch,
 } from './testUtils';
+import { setUsageListener } from './usage';
 
 async function kindOf(p: Promise<unknown>): Promise<string | undefined> {
   try {
@@ -24,7 +25,38 @@ const config = () => makeConfig({ provider: 'anthropic', apiKey: 'sk-ant-test', 
 
 describe('anthropicProvider', () => {
   beforeEach(() => _resetAnthropicState());
-  afterEach(() => vi.unstubAllGlobals());
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    setUsageListener(null);
+  });
+
+  it('응답의 usage 를 anthropic·실제 모델명과 함께 보고한다(잘린 응답도 보고)', async () => {
+    const listener = vi.fn();
+    setUsageListener(listener);
+    stubFetch({
+      body: {
+        ...anthropicBody([okOutput(['a', 'b'])]),
+        usage: { input_tokens: 30, output_tokens: 8 },
+      },
+    });
+    await anthropicProvider.translate(makeRequest(), config());
+    expect(listener).toHaveBeenCalledWith({
+      provider: 'anthropic',
+      model: 'claude-opus-5-5',
+      usage: { inputTokens: 30, outputTokens: 8 },
+    });
+    listener.mockClear();
+    stubFetch({
+      body: {
+        ...anthropicBody(['{'], 'max_tokens'),
+        usage: { input_tokens: 3, output_tokens: 2048 },
+      },
+    });
+    expect(await kindOf(anthropicProvider.translate(makeRequest(), config()))).toBe('parse');
+    expect(listener).toHaveBeenCalledWith(
+      expect.objectContaining({ usage: { inputTokens: 3, outputTokens: 2048 } }),
+    );
+  });
 
   it('요청: 헤더, system, messages, output_config(effort low + json_schema), thinking/temperature 없음', async () => {
     const fetchFn = stubFetch({ body: anthropicBody([okOutput(['a', 'b'])]) });

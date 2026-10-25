@@ -15,6 +15,7 @@ export const openaiProvider: TranslationProvider = {
   id: 'openai',
   translate(request: TranslateRequest, config: ProviderConfig) {
     return translateViaChatCompletions({
+      provider: 'openai',
       url: OPENAI_CHAT_COMPLETIONS_URL,
       apiKey: config.apiKey,
       model: config.model.trim() || DEFAULTS.models.openai,

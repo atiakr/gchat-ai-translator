@@ -9,6 +9,7 @@ import {
 import { errorFromFetchFailure, errorFromStatus, isStructuredOutputRejection } from './errors';
 import { parseTranslationOutput } from './parse';
 import { buildPrompt } from './prompt';
+import { reportUsage, usageFromAnthropic } from './usage';
 
 export const ANTHROPIC_MESSAGES_URL = 'https://api.anthropic.com/v1/messages';
 
@@ -41,8 +42,9 @@ async function send(
   const prompt = buildPrompt(request, { jsonInPrompt: !structured });
   const outputConfig: Record<string, unknown> = { effort: DEFAULTS.anthropicEffort };
   if (structured) outputConfig.format = { type: 'json_schema', schema: prompt.schema };
+  const model = config.model.trim() || DEFAULTS.models.anthropic;
   const body = {
-    model: config.model.trim() || DEFAULTS.models.anthropic,
+    model,
     max_tokens: computeMaxTokens(request),
     system: prompt.system,
     messages: [{ role: 'user', content: prompt.user }],
@@ -75,21 +77,29 @@ async function send(
       structuredOutputRejected: structured && isStructuredOutputRejection(status, text),
     };
   }
+  const data = parseBody(text);
+  const usage = usageFromAnthropic(data);
+  if (usage) reportUsage({ provider: 'anthropic', model, usage });
   try {
-    return { kind: 'ok', result: parseTranslationOutput(extractText(text), request.items) };
+    return { kind: 'ok', result: parseTranslationOutput(extractText(data), request.items) };
   } catch (err) {
     return { kind: 'error', error: errorFromFetchFailure(err), structuredOutputRejected: false };
   }
 }
 
-/** `content[].text` 를 이어 붙인다. stop_reason 이 max_tokens 면 잘림(parse), refusal 이면 bad_request. */
-function extractText(bodyText: string): string {
-  let data: Record<string, unknown>;
+/** 본문을 JSON 으로 파싱한다. JSON 이 아니면 null(이후 extractText 가 parse 오류로 바꾼다). */
+function parseBody(bodyText: string): unknown {
   try {
-    data = JSON.parse(bodyText) as Record<string, unknown>;
+    return JSON.parse(bodyText);
   } catch {
-    throw new ProviderError('parse', 'Response body is not JSON');
+    return null;
   }
+}
+
+/** `content[].text` 를 이어 붙인다. stop_reason 이 max_tokens 면 잘림(parse), refusal 이면 bad_request. */
+function extractText(raw: unknown): string {
+  if (raw === null) throw new ProviderError('parse', 'Response body is not JSON');
+  const data = raw as Record<string, unknown>;
   if (!data || typeof data !== 'object') {
     throw new ProviderError('parse', 'Response body is not an object');
   }

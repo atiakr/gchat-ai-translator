@@ -28,6 +28,7 @@ export const openaiCompatibleProvider: TranslationProvider = {
   async translate(request: TranslateRequest, config: ProviderConfig) {
     const url = buildChatCompletionsUrl(config.baseUrl);
     return translateViaChatCompletions({
+      provider: 'openai_compatible',
       url,
       apiKey: config.apiKey.trim(),
       model: config.model.trim(),

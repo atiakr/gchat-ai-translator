@@ -1,10 +1,14 @@
+import type { ProviderId } from '../config/defaults';
 import { ProviderError, type TranslateItemResult, type TranslateRequest } from '../engine/types';
 import { errorFromFetchFailure, errorFromStatus, isStructuredOutputRejection } from './errors';
 import { parseTranslationOutput } from './parse';
 import { buildPrompt } from './prompt';
+import { reportUsage, usageFromChatCompletions } from './usage';
 
 /** OpenAI Chat Completions 와 같은 wire format 을 쓰는 서비스의 공통 호출부. */
 export interface ChatCompletionsCall {
+  /** 사용량 보고에 쓰는 서비스 id. */
+  provider: ProviderId;
   url: string;
   /** 비어 있으면 Authorization 헤더를 보내지 않는다. */
   apiKey: string;
@@ -66,21 +70,28 @@ async function send(call: ChatCompletionsCall, structured: boolean): Promise<Sen
       structuredOutputRejected: structured && isStructuredOutputRejection(status, text),
     };
   }
+  const data = parseBody(text);
+  const usage = usageFromChatCompletions(data);
+  if (usage) reportUsage({ provider: call.provider, model: call.model, usage });
   try {
-    return { kind: 'ok', result: parseTranslationOutput(extractContent(text), call.request.items) };
+    return { kind: 'ok', result: parseTranslationOutput(extractContent(data), call.request.items) };
   } catch (err) {
     return { kind: 'error', error: errorFromFetchFailure(err), structuredOutputRejected: false };
   }
 }
 
-/** `choices[0].message.content` 를 꺼낸다. 잘림·거부는 분류된 오류로. */
-function extractContent(bodyText: string): string {
-  let data: unknown;
+/** 본문을 JSON 으로 파싱한다. JSON 이 아니면 null(이후 extractContent 가 parse 오류로 바꾼다). */
+function parseBody(bodyText: string): unknown {
   try {
-    data = JSON.parse(bodyText);
+    return JSON.parse(bodyText);
   } catch {
-    throw new ProviderError('parse', 'Response body is not JSON');
+    return null;
   }
+}
+
+/** `choices[0].message.content` 를 꺼낸다. 잘림·거부는 분류된 오류로. */
+function extractContent(data: unknown): string {
+  if (data === null) throw new ProviderError('parse', 'Response body is not JSON');
   const choices = (data as { choices?: unknown })?.choices;
   const choice = Array.isArray(choices) ? (choices[0] as Record<string, unknown>) : undefined;
   if (!choice || typeof choice !== 'object') {
