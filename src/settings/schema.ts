@@ -60,6 +60,8 @@ export interface RoomSettings {
   name?: string;
   incomingDisabled: boolean;
   outgoingLang?: string;
+  /** 켜면 이 방에서 그냥 Enter 도 바로 보내지 않고 번역 미리보기를 연다. 없으면 꺼짐. */
+  enterTranslates?: boolean;
   /** 이 방에만 적용할 추가 지시문. 전역 지시문 뒤에 이어 붙는다. */
   instructions?: string;
 }
