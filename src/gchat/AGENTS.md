@@ -20,6 +20,7 @@
 - Own message: the heading's display text ≠ `data-name`, and the display text does not start with the real name. The detected `data-user-id` is remembered in module state (reset with `forgetSelfUserId`).
 - Replacing composer text: `execCommand('insertText')` → re-check → on failure, one `<div>` per line plus a bubbling `input` event.
 - Active composer: the focused one → the one inside `[role="main"]` → the first one.
+- Room header slot (`getRoomHeaderSlot`): the `roomHeader` child of the `roomPane` ancestor of the current room root. In the home right-pane view, before the icon `section`; in the full view, before the last (spacer) child of the header row, because the row's right end is covered by Google's side toolbar.
 
 ## Tests
 - Verified against fixtures in `tests/fixtures/gchat/*.html`. When the page structure changes, capture it again from the live page and update the fixtures, the selectors, and `tests/fixtures/gchat/README.md` together.

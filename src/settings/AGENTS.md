@@ -6,7 +6,7 @@
 
 ## Invariants
 - API keys are written only to `local:apiKeys`. No function writes a key to sync.
-- Global settings are a single `sync:settings` entry; per-room settings are one `sync:room:<room id>` entry per room.
+- Global settings are a single `sync:settings` entry; per-room settings are one `sync:room:<room id>` entry per room. Room fields: `incomingDisabled`, optional `name`, `outgoingLang`, `instructions`, and `enterTranslates` (missing = off; no migration, readers compare with `=== true`).
 - A room's `instructions` is cut to `DEFAULTS.maxRoomInstructionsChars` on save so the room entry stays under the 8KB sync item limit; whitespace-only removes the field. Read it with `roomInstructions()`, which treats a missing or corrupt value as empty.
 - `getGlobalSettings` always returns a complete, migrated value. Corrupt fields fall back to defaults (negative or zero limits, unknown provider ids, non-string languages, etc.).
 - `setApiKey` trims surrounding whitespace before saving and clears that provider's invalid-key state.

@@ -13,6 +13,7 @@
 - In the per-message status map (`messageId → textHash, status, translation`), an unchanged hash is never requested again. A changed hash goes back to `pending` and is requested again.
 - If the hash is unchanged but Google's re-render removed the incoming UI (no handle, or `isAttached()` is false), the last result in the status map is re-attached without a request (on both `added` and `changed` ticks).
 - My own messages from `added` and `changed` ticks (and every container when a room becomes ready) go to the outgoing `restoreSentOriginals`, so the in-place original comes back after Google re-renders the body.
+- The room's `enterTranslates` is passed to the outgoing controller (`setEnterTranslate`) when the room settings are read or change. On a room switch it is turned off until the new room's settings arrive.
 - Late responses from a previous room are dropped.
 - An exception while handling one message never stops handling of other messages.
 
