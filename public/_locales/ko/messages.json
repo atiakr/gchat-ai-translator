@@ -119,6 +119,15 @@
   "outgoing_buttonTitle": {
     "message": "보내기 전 번역 (Ctrl/⌘+Shift+Enter)"
   },
+  "outgoing_enterToggleLabel": {
+    "message": "바로 번역"
+  },
+  "outgoing_enterToggleOn": {
+    "message": "바로 번역 켜짐: Enter 로 보낼 때 번역을 거칩니다 (누르면 끔)"
+  },
+  "outgoing_enterToggleOff": {
+    "message": "바로 번역 꺼짐: Enter 로 원문을 그대로 보냅니다 (누르면 켬)"
+  },
   "outgoing_panelTitle": {
     "message": "보내기 전 번역"
   },
@@ -148,6 +157,12 @@
   },
   "outgoing_close": {
     "message": "닫기"
+  },
+  "outgoing_enterBlocked": {
+    "message": "지금은 번역할 수 없어 보내지 않았습니다. 확장 팝업에서 상태를 확인하거나, 이 방의 바로 번역을 끄세요."
+  },
+  "outgoing_enterTurnOff": {
+    "message": "이 방에서 바로 번역 끄기"
   },
   "outgoing_error_auth": {
     "message": "API 키가 올바르지 않습니다. 설정에서 키를 확인하세요."
@@ -323,6 +338,9 @@
   },
   "options_roomIncomingOff": {
     "message": "수신 번역 끄기"
+  },
+  "options_roomEnterTranslate": {
+    "message": "바로 번역 (Enter 로 보낼 때 번역 거치기)"
   },
   "options_roomOutgoingLang": {
     "message": "발신 언어"

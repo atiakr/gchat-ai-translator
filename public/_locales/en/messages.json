@@ -119,6 +119,15 @@
   "outgoing_buttonTitle": {
     "message": "Translate before sending (Ctrl/⌘+Shift+Enter)"
   },
+  "outgoing_enterToggleLabel": {
+    "message": "Quick translate"
+  },
+  "outgoing_enterToggleOn": {
+    "message": "Quick translate on: Enter translates before sending (click to turn off)"
+  },
+  "outgoing_enterToggleOff": {
+    "message": "Quick translate off: Enter sends the original as is (click to turn on)"
+  },
   "outgoing_panelTitle": {
     "message": "Translate before sending"
   },
@@ -148,6 +157,12 @@
   },
   "outgoing_close": {
     "message": "Close"
+  },
+  "outgoing_enterBlocked": {
+    "message": "Not sent because translation is unavailable right now. Check the extension popup, or turn off quick translate for this room."
+  },
+  "outgoing_enterTurnOff": {
+    "message": "Turn off quick translate in this room"
   },
   "outgoing_error_auth": {
     "message": "The API key is not valid. Check the key in settings."
@@ -323,6 +338,9 @@
   },
   "options_roomIncomingOff": {
     "message": "Turn off incoming translation"
+  },
+  "options_roomEnterTranslate": {
+    "message": "Quick translate (translate before sending on Enter)"
   },
   "options_roomOutgoingLang": {
     "message": "Outgoing language"

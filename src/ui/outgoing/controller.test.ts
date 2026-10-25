@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULTS } from '../../config/defaults';
 import type { ComposerInfo, MessageInfo, MessageObserverCallback } from '../../gchat/adapter';
+import { t } from '../../i18n/t';
 import type { MessageKind, MessageMap } from '../../messaging/protocol';
 import { DEFAULT_GLOBAL_SETTINGS, type RoomSettings } from '../../settings/schema';
 import { unmountAll } from '../incoming/mount';
@@ -20,6 +21,8 @@ const ROOM = 'dm/room1';
 interface FakeAdapter extends OutgoingAdapter {
   room: { roomId: string; name?: string } | null;
   composer: ComposerInfo | null;
+  /** 방 머리글 줄(제목 · 빈 요소). `null` 이면 머리글을 못 찾은 화면. */
+  headerRow: HTMLElement | null;
   text: string;
   rich: { mentions: boolean; formatting: boolean; attachments: boolean };
   sendOk: boolean;
@@ -50,12 +53,24 @@ function buildComposer(): ComposerInfo {
   return { textbox, sendButton, sendGroup, region };
 }
 
+function buildHeaderRow(): HTMLElement {
+  const row = document.createElement('div');
+  row.className = 'header-row';
+  const title = document.createElement('div');
+  const spacer = document.createElement('div');
+  spacer.className = 'spacer';
+  row.append(title, spacer);
+  document.body.append(row);
+  return row;
+}
+
 function makeAdapter(): FakeAdapter {
   const list = document.createElement('div');
   list.className = 'messages';
   document.body.append(list);
   const fake: FakeAdapter = {
     composer: buildComposer(),
+    headerRow: buildHeaderRow(),
     text: '',
     rich: { mentions: false, formatting: false, attachments: false },
     sendOk: true,
@@ -66,6 +81,9 @@ function makeAdapter(): FakeAdapter {
     disconnectCount: 0,
     room: { roomId: ROOM, name: 'Alice' },
     getActiveComposer: vi.fn(() => fake.composer),
+    getRoomHeaderSlot: vi.fn(() =>
+      fake.headerRow ? { parent: fake.headerRow, before: fake.headerRow.lastElementChild } : null,
+    ),
     getCurrentRoom: vi.fn(() => (fake.room ? { ...fake.room } : null)),
     readComposerText: vi.fn(() => fake.text),
     isComposerEmpty: vi.fn(() => fake.text.trim().length === 0),
@@ -192,6 +210,7 @@ function setup(opts: { room?: Partial<RoomSettings>; outgoingLang?: string } = {
 }
 
 const buttonHost = () => document.querySelector<HTMLElement>('[data-gat-outgoing="button"]');
+const headerHost = () => document.querySelector<HTMLElement>('[data-gat-outgoing="header"]');
 const panelHost = () => document.querySelector<HTMLElement>('[data-gat-outgoing="panel"]');
 const sentHosts = () => Array.from(document.querySelectorAll<HTMLElement>('[data-gat-incoming]'));
 const wrapperOf = (c: HTMLElement) => c.querySelector<HTMLElement>('[data-gat-original]');
@@ -259,9 +278,11 @@ describe('mount / setEnabled', () => {
     h.adapter.text = '안녕';
     await h.controller.trigger();
     expect(panelHost()).not.toBeNull();
+    expect(headerHost()).not.toBeNull();
     h.controller.destroy();
     expect(buttonHost()).toBeNull();
     expect(panelHost()).toBeNull();
+    expect(headerHost()).toBeNull();
   });
 });
 
@@ -480,6 +501,189 @@ describe('shortcut / command dedupe', () => {
     h.now.value += DEFAULTS.shortcutDedupeMs;
     h.controller.onCommand();
     await vi.waitFor(() => expect(h.msg.of('translate.outgoing')).toHaveLength(2));
+  });
+});
+
+describe('Enter 번역', () => {
+  const enter = (init: KeyboardEventInit = {}) =>
+    new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true, ...init });
+  const panelText = () => panelHost()?.shadowRoot?.textContent ?? '';
+
+  it('켜면 그냥 Enter 를 막고 미리보기를 연다(확인 전에는 보내지 않는다)', async () => {
+    const h = track(setup());
+    h.controller.mount(ROOM, true);
+    h.controller.setEnterTranslate(true);
+    h.adapter.text = '안녕';
+    const e = enter();
+    h.adapter.composer?.textbox.dispatchEvent(e);
+    expect(e.defaultPrevented).toBe(true);
+    await vi.waitFor(() => expect(h.msg.of('translate.outgoing')).toHaveLength(1));
+    expect(h.controller.getState().open).toBe(true);
+    expect(h.adapter.clickSend).not.toHaveBeenCalled();
+  });
+
+  it('Shift+Enter(줄바꿈)·IME 조합 중 Enter 는 건드리지 않는다', () => {
+    const h = track(setup());
+    h.controller.mount(ROOM, true);
+    h.controller.setEnterTranslate(true);
+    h.adapter.text = '안녕';
+    const events = [
+      enter({ shiftKey: true }),
+      enter({ isComposing: true }),
+      enter({ keyCode: 229 }),
+    ];
+    for (const e of events) h.adapter.composer?.textbox.dispatchEvent(e);
+    expect(events.map((e) => e.defaultPrevented)).toEqual([false, false, false]);
+    expect(h.msg.of('translate.outgoing')).toHaveLength(0);
+  });
+
+  it('입력창에 글이 없으면 그냥 Enter 를 Google Chat 으로 흘려보낸다(첨부만 보내기)', () => {
+    const h = track(setup());
+    h.controller.mount(ROOM, true);
+    h.controller.setEnterTranslate(true);
+    const e = enter();
+    h.adapter.composer?.textbox.dispatchEvent(e);
+    expect(e.defaultPrevented).toBe(false);
+  });
+
+  it('번역할 수 없으면 전송을 막고 안내만 띄우며, 번역을 요청하지 않는다', async () => {
+    const h = track(setup());
+    h.controller.mount(ROOM, false);
+    h.controller.setEnterTranslate(true);
+    h.adapter.text = '안녕';
+    const e = enter();
+    h.adapter.composer?.textbox.dispatchEvent(e);
+    expect(e.defaultPrevented).toBe(true);
+    expect(h.controller.getState()).toMatchObject({ open: true, blocked: true });
+    await vi.waitFor(() => expect(panelText()).toContain(t('outgoing_enterBlocked')));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(h.msg.of('translate.outgoing')).toHaveLength(0);
+    expect(h.adapter.clickSend).not.toHaveBeenCalled();
+    // 메시지가 늘 때마다 다시 mount 돼도 안내는 남는다
+    h.controller.mount(ROOM, false);
+    expect(h.controller.getState().blocked).toBe(true);
+    h.controller.cancel();
+    expect(panelHost()).toBeNull();
+    expect(h.adapter.text).toBe('안녕');
+  });
+
+  it('차단 안내는 다시 번역할 수 있게 되거나 Enter 번역을 끄면 닫힌다', () => {
+    const h = track(setup());
+    h.controller.mount(ROOM, false);
+    h.controller.setEnterTranslate(true);
+    h.adapter.text = '안녕';
+    h.adapter.composer?.textbox.dispatchEvent(enter());
+    h.controller.setEnabled(true);
+    expect(h.controller.getState().open).toBe(false);
+
+    h.controller.setEnabled(false);
+    h.adapter.composer?.textbox.dispatchEvent(enter());
+    expect(h.controller.getState().blocked).toBe(true);
+    h.controller.setEnterTranslate(false);
+    expect(h.controller.getState().open).toBe(false);
+  });
+
+  const enterToggle = () =>
+    headerHost()?.shadowRoot?.querySelector<HTMLButtonElement>('button[role="switch"]') ?? null;
+
+  it('방 머리글의 빈 요소 앞에 스위치를 넣고, 머리글이 다시 그려지면 다시 넣는다', async () => {
+    const h = track(setup());
+    h.controller.mount(ROOM, true);
+    const row = h.adapter.headerRow as HTMLElement;
+    expect(headerHost()?.parentElement).toBe(row);
+    expect(headerHost()?.nextElementSibling).toBe(row.querySelector('.spacer'));
+    await vi.waitFor(() => expect(enterToggle()).not.toBeNull());
+    expect(document.querySelectorAll('[data-gat-outgoing="header"]')).toHaveLength(1);
+
+    // 같은 머리글이면 다시 mount 해도 하나만 남는다
+    h.controller.mount(ROOM, true);
+    expect(document.querySelectorAll('[data-gat-outgoing="header"]')).toHaveLength(1);
+
+    // Google 이 머리글을 새로 그리면 새 머리글로 옮긴다
+    row.remove();
+    h.adapter.headerRow = buildHeaderRow();
+    h.controller.mount(ROOM, true);
+    expect(headerHost()?.parentElement).toBe(h.adapter.headerRow);
+    expect(document.querySelectorAll('[data-gat-outgoing="header"]')).toHaveLength(1);
+
+    // 꺼지면 숨기고, 머리글을 못 찾으면 떼어낸다
+    h.controller.setEnabled(false);
+    expect(headerHost()?.hidden).toBe(true);
+    h.adapter.headerRow = null;
+    h.controller.mount(ROOM, false);
+    expect(headerHost()).toBeNull();
+  });
+
+  it('머리글 스위치를 누르면 이 방 설정에 저장하고 바로 그냥 Enter 를 가로챈다', async () => {
+    const h = track(setup());
+    h.controller.mount(ROOM, true);
+    await vi.waitFor(() => expect(enterToggle()).not.toBeNull());
+    expect(enterToggle()?.getAttribute('aria-checked')).toBe('false');
+    enterToggle()?.click();
+    await vi.waitFor(() =>
+      expect(h.setRoomSettings).toHaveBeenCalledWith(ROOM, {
+        enterTranslates: true,
+        name: 'Alice',
+      }),
+    );
+    await vi.waitFor(() => expect(enterToggle()?.getAttribute('aria-checked')).toBe('true'));
+    h.adapter.text = '안녕';
+    const e = enter();
+    h.adapter.composer?.textbox.dispatchEvent(e);
+    expect(e.defaultPrevented).toBe(true);
+
+    enterToggle()?.click();
+    await vi.waitFor(() =>
+      expect(h.setRoomSettings).toHaveBeenLastCalledWith(ROOM, {
+        enterTranslates: false,
+        name: 'Alice',
+      }),
+    );
+  });
+
+  it('토글 저장에 실패하면 원래대로 되돌린다', async () => {
+    const h = track(setup());
+    h.setRoomSettings.mockRejectedValueOnce(new Error('QUOTA'));
+    h.controller.mount(ROOM, true);
+    await vi.waitFor(() => expect(enterToggle()).not.toBeNull());
+    enterToggle()?.click();
+    await vi.waitFor(() => expect(h.setRoomSettings).toHaveBeenCalled());
+    await vi.waitFor(() => expect(enterToggle()?.getAttribute('aria-checked')).toBe('false'));
+    h.adapter.text = '안녕';
+    const e = enter();
+    h.adapter.composer?.textbox.dispatchEvent(e);
+    expect(e.defaultPrevented).toBe(false);
+  });
+
+  it('차단 안내의 "Enter 번역 끄기" 는 방 설정을 끄고 안내를 닫는다', async () => {
+    const h = track(setup());
+    h.controller.mount(ROOM, false);
+    h.controller.setEnterTranslate(true);
+    h.adapter.text = '안녕';
+    h.adapter.composer?.textbox.dispatchEvent(enter());
+    const turnOff = () =>
+      Array.from(panelHost()?.shadowRoot?.querySelectorAll('button') ?? []).find(
+        (b) => b.textContent === t('outgoing_enterTurnOff'),
+      );
+    await vi.waitFor(() => expect(turnOff()).toBeDefined());
+    turnOff()?.click();
+    await vi.waitFor(() =>
+      expect(h.setRoomSettings).toHaveBeenCalledWith(ROOM, {
+        enterTranslates: false,
+        name: 'Alice',
+      }),
+    );
+    expect(h.controller.getState().open).toBe(false);
+  });
+
+  it('끄면 꺼진 상태에서도 그냥 Enter 를 막지 않는다', () => {
+    const h = track(setup());
+    h.controller.mount(ROOM, false);
+    h.adapter.text = '안녕';
+    const e = enter();
+    h.adapter.composer?.textbox.dispatchEvent(e);
+    expect(e.defaultPrevented).toBe(false);
+    expect(h.controller.getState().open).toBe(false);
   });
 });
 

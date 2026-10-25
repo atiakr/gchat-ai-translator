@@ -12,6 +12,8 @@ import {
   setRoomSettings as storageSetRoomSettings,
 } from '../../settings/storage';
 import { createIncomingMounts } from '../incoming/mount';
+import { BlockedNotice } from './BlockedNotice';
+import { HeaderToggle } from './HeaderToggle';
 import { createShadowHost, type ShadowHost } from './host';
 import { type OutgoingError, PreviewPanel } from './PreviewPanel';
 import { TranslateButton } from './TranslateButton';
@@ -26,6 +28,7 @@ import { TranslateButton } from './TranslateButton';
 export type OutgoingAdapter = Pick<
   typeof gchat,
   | 'getActiveComposer'
+  | 'getRoomHeaderSlot'
   | 'getCurrentRoom'
   | 'readComposerText'
   | 'isComposerEmpty'
@@ -60,6 +63,8 @@ export interface OutgoingState {
   error: OutgoingError | null;
   rich: RichContentReport;
   sendFailed: boolean;
+  /** Enter 번역이 켜진 방에서 번역할 수 없어 전송을 막았다는 안내만 띄운 상태. */
+  blocked: boolean;
 }
 
 export interface OutgoingController {
@@ -69,7 +74,9 @@ export interface OutgoingController {
   setEnabled(enabled: boolean): void;
   /** 버튼·단축키·command 공통 진입. 꺼져 있거나 입력창이 비면 아무 일도 하지 않는다. */
   trigger(): Promise<void>;
-  /** 입력창의 keydown. Ctrl/Cmd+Shift+Enter 만 가로챈다. */
+  /** 방 설정의 Enter 번역. 켜면 그냥 Enter 도 바로 보내지 않고 미리보기를 연다. */
+  setEnterTranslate(on: boolean): void;
+  /** 입력창의 keydown. Ctrl/Cmd+Shift+Enter 와, Enter 번역이 켜졌을 때의 그냥 Enter 만 가로챈다. */
   onShortcutKey(e: KeyboardEvent): void;
   /** background 의 `command.translateOutgoing`. */
   onCommand(): void;
@@ -120,11 +127,18 @@ function initialState(): OutgoingState {
     error: null,
     rich: NO_RICH,
     sendFailed: false,
+    blocked: false,
   };
 }
 
 function isShortcutCombo(e: KeyboardEvent): boolean {
   return e.key === 'Enter' && e.shiftKey && (e.ctrlKey || e.metaKey) && !e.altKey;
+}
+
+/** 수식키 없는 Enter. 한글 등 IME 조합을 끝내는 Enter(`isComposing`, keyCode 229)는 뺀다. */
+function isPlainEnter(e: KeyboardEvent): boolean {
+  if (e.key !== 'Enter' || e.shiftKey || e.ctrlKey || e.metaKey || e.altKey) return false;
+  return !e.isComposing && e.keyCode !== 229;
 }
 
 interface Mounted {
@@ -133,6 +147,11 @@ interface Mounted {
   host: ShadowHost;
   root: Root;
   keyHandler: (e: KeyboardEvent) => void;
+}
+
+interface HeaderMount {
+  host: ShadowHost;
+  root: Root;
 }
 
 interface PanelMount {
@@ -154,8 +173,10 @@ export function createOutgoingController(
 
   let state: OutgoingState = initialState();
   let enabled = false;
+  let enterTranslates = false;
   let mounted: Mounted | null = null;
   let panel: PanelMount | null = null;
+  let header: HeaderMount | null = null;
   let activeComposer: ComposerInfo | null = null;
   let translateSeq = 0;
   let lastFireAt: number | null = null;
@@ -198,6 +219,48 @@ export function createOutgoingController(
     composer.textbox.addEventListener('keydown', keyHandler, KEY_LISTENER);
     mounted = { roomId: nextRoomId, composer, host, root, keyHandler };
     host.setHidden(!enabled);
+  }
+
+  /* ---------------- 방 머리글 스위치 ---------------- */
+
+  function unmountHeader(): void {
+    if (!header) return;
+    header.root.unmount();
+    header.host.remove();
+    header = null;
+  }
+
+  /** 현재 방 머리글에 Enter 번역 스위치를 둔다. Google 이 머리글을 다시 그려 떨어졌으면 다시 넣는다. */
+  function syncHeader(): void {
+    if (destroyed) return;
+    const slot = adapter.getRoomHeaderSlot();
+    if (!slot) {
+      unmountHeader();
+      return;
+    }
+    if (!header?.host.el.isConnected || header.host.el.parentElement !== slot.parent) {
+      unmountHeader();
+      const host = createShadowHost('header', adapter.getChatTheme());
+      try {
+        slot.parent.insertBefore(host.el, slot.before);
+      } catch {
+        return;
+      }
+      header = { host, root: createRoot(host.mount) };
+      renderHeader();
+    }
+    header.host.setTheme(adapter.getChatTheme());
+    header.host.setHidden(!enabled);
+  }
+
+  function renderHeader(): void {
+    if (!header || destroyed) return;
+    header.root.render(
+      createElement(HeaderToggle, {
+        on: enterTranslates,
+        onToggle: () => void toggleEnterTranslate(),
+      }),
+    );
   }
 
   /* ---------------- 패널 호스트 ---------------- */
@@ -256,6 +319,15 @@ export function createOutgoingController(
     const p = ensurePanel(region);
     p.host.setTheme(adapter.getChatTheme());
     p.reposition();
+    if (state.blocked) {
+      p.root.render(
+        createElement(BlockedNotice, {
+          onClose: cancel,
+          onTurnOff: () => void toggleEnterTranslate(),
+        }),
+      );
+      return;
+    }
     p.root.render(
       createElement(PreviewPanel, {
         original: state.original,
@@ -399,6 +471,7 @@ export function createOutgoingController(
   function mount(nextRoomId: string, nextEnabled: boolean): void {
     if (destroyed) return;
     enabled = nextEnabled;
+    syncHeader();
     const composer = adapter.getActiveComposer();
     if (!composer) {
       unmountButton();
@@ -409,7 +482,7 @@ export function createOutgoingController(
       mounted.composer = composer;
       mounted.host.setHidden(!enabled);
       mounted.host.setTheme(adapter.getChatTheme());
-      if (!enabled) closePanel();
+      if (enabled ? state.blocked : !state.blocked) closePanel();
       return;
     }
     if (state.open) closePanel();
@@ -419,7 +492,42 @@ export function createOutgoingController(
   function setEnabled(next: boolean): void {
     enabled = next;
     if (mounted) mounted.host.setHidden(!next);
-    if (!next && state.open) closePanel();
+    header?.host.setHidden(!next);
+    // 꺼지면 미리보기를 닫는다. 차단 안내는 꺼진 동안 띄우는 것이라 다시 켜질 때 닫는다.
+    if (state.open && (next ? state.blocked : !state.blocked)) closePanel();
+  }
+
+  function setEnterTranslate(on: boolean): void {
+    if (on !== enterTranslates) {
+      enterTranslates = on;
+      renderHeader();
+    }
+    if (!on && state.blocked) closePanel();
+  }
+
+  /** 입력창 옆 토글·차단 안내에서 이 방의 Enter 번역을 바꾼다. 저장에 실패하면 되돌린다. */
+  async function toggleEnterTranslate(): Promise<void> {
+    const room = roomId();
+    if (destroyed || !room) return;
+    const next = !enterTranslates;
+    const roomName = currentRoomName(room);
+    setEnterTranslate(next);
+    try {
+      await deps.setRoomSettings(room, {
+        enterTranslates: next,
+        ...(roomName ? { name: roomName } : {}),
+      });
+    } catch {
+      if (roomId() === room && enterTranslates === next) setEnterTranslate(!next);
+    }
+  }
+
+  function showBlocked(): void {
+    if (destroyed || !mounted) return;
+    translateSeq += 1;
+    activeComposer = mounted.composer;
+    state = { ...initialState(), lang: state.lang, open: true, blocked: true };
+    render();
   }
 
   async function trigger(): Promise<void> {
@@ -446,11 +554,22 @@ export function createOutgoingController(
   }
 
   function onShortcutKey(e: KeyboardEvent): void {
-    if (!enabled || !isShortcutCombo(e)) return;
-    // 단축키 조합만 막는다. 그 밖의 키(그냥 Enter 포함)는 Google Chat 으로 그대로 흘려보낸다.
+    if (isShortcutCombo(e)) {
+      if (!enabled) return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      fire();
+      return;
+    }
+    // 그 밖의 키는 Google Chat 으로 그대로 흘려보낸다. 그냥 Enter 는 이 방에서 Enter 번역을 켰을 때만 막는다.
+    if (!enterTranslates || !isPlainEnter(e) || !mounted) return;
+    // 글이 없으면(첨부만 있는 메시지 등) Google Chat 이 평소대로 보낸다.
+    if (adapter.isComposerEmpty(mounted.composer.textbox)) return;
     e.preventDefault();
     e.stopImmediatePropagation();
-    fire();
+    // 번역할 수 없으면 원문이 그대로 나가지 않게 막고 안내만 띄운다.
+    if (enabled) fire();
+    else showBlocked();
   }
 
   function onCommand(): void {
@@ -568,6 +687,7 @@ export function createOutgoingController(
     state = initialState();
     closePanelHost();
     unmountButton();
+    unmountHeader();
     sentViews.unmountAll();
     sentOriginals.clear();
     activeComposer = null;
@@ -577,6 +697,7 @@ export function createOutgoingController(
   return {
     mount,
     setEnabled,
+    setEnterTranslate,
     trigger,
     onShortcutKey,
     onCommand,

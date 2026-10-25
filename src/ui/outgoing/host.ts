@@ -6,7 +6,7 @@ import stylesCss from './styles.css?inline';
  * 발신 번역 UI 의 Shadow DOM 호스트. 격리·토큰 주입은 공용 `src/ui/shadow.ts` 가 하고,
  * 여기서는 발신 UI 표식(`data-gat-outgoing`)과 React 를 붙일 컨테이너만 더한다.
  */
-export type OutgoingHostKind = 'button' | 'panel';
+export type OutgoingHostKind = 'button' | 'panel' | 'header';
 
 export interface ShadowHost {
   /** 페이지 DOM 에 삽입되는 호스트 요소(`data-gat-outgoing="<kind>"`). */
@@ -30,6 +30,11 @@ export function createShadowHost(kind: OutgoingHostKind, theme: Theme): ShadowHo
     el.style.verticalAlign = 'middle';
     // 입력창 줄(flex)에 놓일 때 보내기 버튼과 세로 중앙을 맞춘다.
     el.style.alignSelf = 'center';
+  } else if (kind === 'header') {
+    // 방 머리글(가로 flex 줄)에 아이콘들과 나란히 놓인다. 줄어들지 않게 한다.
+    el.style.display = 'inline-flex';
+    el.style.alignSelf = 'center';
+    el.style.flex = 'none';
   }
   const shownDisplay = el.style.display;
   const mount = document.createElement('div');
