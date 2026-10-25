@@ -92,6 +92,10 @@ describe('popup App', () => {
     await waitFor(async () => {
       expect((await getRoomSettings('space/AAA'))?.incomingDisabled).toBe(true);
     });
+    await user.click(screen.getByRole('switch', { name: 'options_roomEnterTranslate' }));
+    await waitFor(async () => {
+      expect((await getRoomSettings('space/AAA'))?.enterTranslates).toBe(true);
+    });
     await user.selectOptions(screen.getByLabelText('options_roomOutgoingLang'), 'ja');
     await waitFor(async () => {
       expect((await getRoomSettings('space/AAA'))?.outgoingLang).toBe('ja');

@@ -168,6 +168,11 @@ export function RoomCard({ room }: { room: CurrentRoom }) {
         checked={roomSettings.incomingDisabled}
         onChange={(incomingDisabled) => update({ incomingDisabled, ...withName })}
       />
+      <Toggle
+        label={t('options_roomEnterTranslate')}
+        checked={roomSettings.enterTranslates === true}
+        onChange={(enterTranslates) => update({ enterTranslates, ...withName })}
+      />
       <div className="gat-field">
         <label className="gat-field__label" htmlFor={selectId}>
           {t('options_roomOutgoingLang')}

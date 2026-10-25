@@ -40,6 +40,11 @@ export function RoomsSection({ rooms, updateRoom, deleteRoom }: RoomsSectionProp
                   checked={room.incomingDisabled}
                   onChange={(incomingDisabled) => updateRoom(room.roomId, { incomingDisabled })}
                 />
+                <Toggle
+                  label={t('options_roomEnterTranslate')}
+                  checked={room.enterTranslates === true}
+                  onChange={(enterTranslates) => updateRoom(room.roomId, { enterTranslates })}
+                />
                 <div className="gat-row">
                   <label className="gat-muted" htmlFor={`${ids}-out-${index}`}>
                     {t('options_roomOutgoingLang')}
