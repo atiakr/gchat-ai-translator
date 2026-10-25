@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeBrowser } from 'wxt/testing/fake-browser';
 import { setApiKey, setBrokenState, setGlobalSettings, setInvalidKey } from '../settings/storage';
+import { addUsage } from '../settings/usage';
 import { applyBadge, BADGE_WARNING_TEXT, computeBadgeReason, refreshBadge } from './badge';
 
 beforeEach(() => fakeBrowser.reset());
@@ -23,6 +24,16 @@ describe('computeBadgeReason', () => {
     expect(await computeBadgeReason()).toBe('broken');
     await setBrokenState(null);
     expect(await computeBadgeReason()).toBeNull();
+  });
+  it('토큰 상한 도달은 budget 이며 깨짐보다 앞서고 키 없음보다 뒤다', async () => {
+    await setGlobalSettings({ dailyTokenLimit: 100 });
+    await addUsage('openai', { inputTokens: 100, outputTokens: 0 });
+    expect(await computeBadgeReason()).toBe('no_key');
+    await setApiKey('openai', 'k');
+    await setBrokenState({ detectedAt: 1 });
+    expect(await computeBadgeReason()).toBe('budget');
+    await setGlobalSettings({ dailyTokenLimit: 0 });
+    expect(await computeBadgeReason()).toBe('broken');
   });
   it('커스텀 서비스는 빈 키여도 경고하지 않는다', async () => {
     await setGlobalSettings({ activeProvider: 'openai_compatible' });

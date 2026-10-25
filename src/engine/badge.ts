@@ -1,26 +1,35 @@
 import { browser } from 'wxt/browser';
 import { t } from '../i18n/t';
-import { getApiKeys, getBrokenState, getGlobalSettings, getInvalidKeys } from '../settings/storage';
+import {
+  dailyLimitReached,
+  getApiKeys,
+  getBrokenState,
+  getGlobalSettings,
+  getInvalidKeys,
+} from '../settings/storage';
 
 /**
- * 확장 아이콘 배지: 키 없음 / 틀린 키 / 화면 깨짐이면 `!` 경고, 아니면 지운다.
+ * 확장 아이콘 배지: 키 없음 / 틀린 키 / 토큰 상한 도달 / 화면 깨짐이면 `!` 경고, 아니면 지운다.
  * 어떤 상태를 띄울지는 저장소를 읽어 정한다. action API 가 없어도 실패하지 않는다.
+ * 우선순위: 틀린 키 > 키 없음 > 상한 도달 > 화면 깨짐.
  */
-export type BadgeReason = 'no_key' | 'invalid_key' | 'broken';
+export type BadgeReason = 'no_key' | 'invalid_key' | 'budget' | 'broken';
 
 export const BADGE_WARNING_TEXT = '!';
 export const BADGE_WARNING_COLOR = '#d93025';
 
 export async function computeBadgeReason(): Promise<BadgeReason | null> {
-  const [settings, keys, invalid, broken] = await Promise.all([
+  const [settings, keys, invalid, broken, budget] = await Promise.all([
     getGlobalSettings(),
     getApiKeys(),
     getInvalidKeys(),
     getBrokenState(),
+    dailyLimitReached(),
   ]);
   const provider = settings.activeProvider;
   if (invalid[provider]) return 'invalid_key';
   if (provider !== 'openai_compatible' && !keys[provider]) return 'no_key';
+  if (budget) return 'budget';
   if (broken) return 'broken';
   return null;
 }
@@ -31,6 +40,8 @@ function titleFor(reason: BadgeReason | null): string {
       return t('bg_badgeNoKey');
     case 'invalid_key':
       return t('bg_badgeInvalidKey');
+    case 'budget':
+      return t('bg_badgeBudget');
     case 'broken':
       return t('bg_badgeBroken');
     default:

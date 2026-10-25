@@ -399,5 +399,81 @@
   },
   "popup_currentRoom": {
     "message": "현재 대화방"
+  },
+  "common_tokenCount": {
+    "message": "$COUNT$ 토큰",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "common_budgetReached": {
+    "message": "오늘 토큰 상한에 도달해 번역을 멈췄습니다. 내일 다시 시작되며, 설정에서 상한을 바꿀 수 있습니다."
+  },
+  "bg_badgeBudget": {
+    "message": "오늘 토큰 상한에 도달해 번역을 멈췄습니다."
+  },
+  "options_dailyTokenLimit": {
+    "message": "일일 토큰 상한 (토큰)"
+  },
+  "options_dailyTokenLimitHelp": {
+    "message": "하루에 쓴 입력·출력 토큰 합계가 이 수에 이르면 번역을 멈추고 배지로 알립니다. 자정(이 기기 시간)에 다시 시작됩니다. 0 이면 상한 없음."
+  },
+  "options_dailyTokenLimitInvalid": {
+    "message": "0 이상의 정수를 입력하세요."
+  },
+  "options_sectionUsage": {
+    "message": "사용량과 비용"
+  },
+  "options_sectionUsageHelp": {
+    "message": "번역 서비스 응답이 알려준 토큰 수를 이 기기에만 모아 보여줍니다. 금액은 아래 단가로 어림한 값이며 실제 청구액과 다를 수 있습니다."
+  },
+  "options_usageToday": {
+    "message": "오늘"
+  },
+  "options_usageMonth": {
+    "message": "이번 달"
+  },
+  "options_usageProvider": {
+    "message": "서비스"
+  },
+  "options_usageInputTokens": {
+    "message": "입력 토큰"
+  },
+  "options_usageOutputTokens": {
+    "message": "출력 토큰"
+  },
+  "options_usageCalls": {
+    "message": "호출"
+  },
+  "options_usageCost": {
+    "message": "예상 비용"
+  },
+  "options_usageEmpty": {
+    "message": "이번 달 사용 기록이 없습니다."
+  },
+  "options_priceInput": {
+    "message": "입력 단가 (USD / 100만 토큰)"
+  },
+  "options_priceOutput": {
+    "message": "출력 단가 (USD / 100만 토큰)"
+  },
+  "options_priceHelp": {
+    "message": "$PROVIDER$ 의 단가입니다. 서비스 요금표의 값을 적으세요. 0 이면 금액을 표시하지 않습니다.",
+    "placeholders": {
+      "provider": {
+        "content": "$1"
+      }
+    }
+  },
+  "options_priceInvalid": {
+    "message": "0 이상의 숫자를 입력하세요."
+  },
+  "popup_usageToday": {
+    "message": "오늘 사용량"
+  },
+  "popup_usageMonth": {
+    "message": "이번 달 사용량"
   }
 }

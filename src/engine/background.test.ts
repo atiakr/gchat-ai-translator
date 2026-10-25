@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeBrowser } from 'wxt/testing/fake-browser';
 import { sendMessage, type TranslateBatchItem } from '../messaging/protocol';
+import { reportUsage } from '../providers/usage';
 import {
   getBrokenState,
   getInvalidKeys,
@@ -12,11 +13,13 @@ import {
   setInvalidKey,
   setRoomSettings,
 } from '../settings/storage';
+import { getUsageStore } from '../settings/usage';
 import {
   broadcastSettingsChanged,
   COMMAND_TRANSLATE_OUTGOING,
   dispatchTranslateOutgoingCommand,
   handleStatusReport,
+  recordUsage,
   startBackground,
 } from './background';
 import type { Engine } from './engine';
@@ -261,5 +264,57 @@ describe('설치·단축키·브로드캐스트·배지', () => {
     expect(tabsSendMessage).toHaveBeenCalled();
     const last = tabsSendMessage.mock.calls.at(-1) as unknown as [number, { payload: unknown }];
     expect(last[1].payload).toMatchObject({ canTranslate: false, reason: 'disabled' });
+  });
+});
+
+describe('토큰 사용량 기록', () => {
+  it('서비스가 보고한 usage 를 기록하고, 상한에 이르는 순간에만 브로드캐스트·배지 갱신한다', async () => {
+    // 사용량 날짜와 게이트 판정이 같은 "오늘" 을 보도록 실제 시계로 다시 시작한다.
+    stop?.();
+    stop = startBackground({ engine, testConnection });
+    await setApiKey('openai', 'k');
+    await setGlobalSettings({ dailyTokenLimit: 100 });
+    await fakeBrowser.tabs.create({ url: 'https://chat.google.com/' });
+    await flush();
+    tabsSendMessage.mockClear();
+    expect(await fakeBrowser.action.getBadgeText({})).toBe('');
+
+    reportUsage({ provider: 'openai', model: 'm', usage: { inputTokens: 40, outputTokens: 10 } });
+    await flush();
+    await flush();
+    expect(Object.values((await getUsageStore()).days)[0]?.openai).toEqual({
+      inputTokens: 40,
+      outputTokens: 10,
+      calls: 1,
+    });
+    expect(tabsSendMessage).not.toHaveBeenCalled();
+
+    reportUsage({ provider: 'openai', model: 'm', usage: { inputTokens: 50, outputTokens: 0 } });
+    await flush();
+    await flush();
+    await flush();
+    expect(tabsSendMessage).toHaveBeenCalled();
+    const last = tabsSendMessage.mock.calls.at(-1) as unknown as [number, { payload: unknown }];
+    expect(last[1].payload).toMatchObject({ canTranslate: false, reason: 'budget' });
+    expect(await fakeBrowser.action.getBadgeText({})).toBe('!');
+    expect(JSON.stringify(last[1].payload)).not.toContain('"k"');
+  });
+  it('recordUsage 는 도달 여부가 바뀔 때만 참이고 던지지 않는다', async () => {
+    await setGlobalSettings({ dailyTokenLimit: 10 });
+    const e = {
+      provider: 'anthropic' as const,
+      model: 'm',
+      usage: { inputTokens: 5, outputTokens: 0 },
+    };
+    expect(await recordUsage(e, 4242)).toBe(false);
+    expect(await recordUsage(e, 4242)).toBe(true);
+    expect(await recordUsage(e, 4242)).toBe(false);
+  });
+  it('startBackground 해제 뒤에는 usage 보고를 기록하지 않는다', async () => {
+    stop?.();
+    stop = undefined;
+    reportUsage({ provider: 'openai', model: 'm', usage: { inputTokens: 1, outputTokens: 1 } });
+    await flush();
+    expect(await getUsageStore()).toEqual({ days: {} });
   });
 });

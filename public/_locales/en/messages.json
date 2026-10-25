@@ -399,5 +399,81 @@
   },
   "popup_currentRoom": {
     "message": "Current room"
+  },
+  "common_tokenCount": {
+    "message": "$COUNT$ tokens",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "common_budgetReached": {
+    "message": "Today's token limit has been reached, so translation is paused. It resumes tomorrow; you can change the limit in settings."
+  },
+  "bg_badgeBudget": {
+    "message": "Today's token limit has been reached. Translation is paused."
+  },
+  "options_dailyTokenLimit": {
+    "message": "Daily token limit (tokens)"
+  },
+  "options_dailyTokenLimitHelp": {
+    "message": "When the day's input + output tokens reach this number, translation pauses and the badge shows a warning. It resumes at midnight (this device's time). 0 means no limit."
+  },
+  "options_dailyTokenLimitInvalid": {
+    "message": "Enter a whole number of 0 or more."
+  },
+  "options_sectionUsage": {
+    "message": "Usage and cost"
+  },
+  "options_sectionUsageHelp": {
+    "message": "Token counts reported by the translation service, stored only on this device. Costs are estimates from the prices below and may differ from your actual bill."
+  },
+  "options_usageToday": {
+    "message": "Today"
+  },
+  "options_usageMonth": {
+    "message": "This month"
+  },
+  "options_usageProvider": {
+    "message": "Service"
+  },
+  "options_usageInputTokens": {
+    "message": "Input tokens"
+  },
+  "options_usageOutputTokens": {
+    "message": "Output tokens"
+  },
+  "options_usageCalls": {
+    "message": "Calls"
+  },
+  "options_usageCost": {
+    "message": "Estimated cost"
+  },
+  "options_usageEmpty": {
+    "message": "No usage recorded this month."
+  },
+  "options_priceInput": {
+    "message": "Input price (USD per 1M tokens)"
+  },
+  "options_priceOutput": {
+    "message": "Output price (USD per 1M tokens)"
+  },
+  "options_priceHelp": {
+    "message": "Prices for $PROVIDER$. Copy them from the service's pricing page. 0 hides the cost.",
+    "placeholders": {
+      "provider": {
+        "content": "$1"
+      }
+    }
+  },
+  "options_priceInvalid": {
+    "message": "Enter a number of 0 or more."
+  },
+  "popup_usageToday": {
+    "message": "Used today"
+  },
+  "popup_usageMonth": {
+    "message": "Used this month"
   }
 }

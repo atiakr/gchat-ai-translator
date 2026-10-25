@@ -1,9 +1,11 @@
 import { browser } from 'wxt/browser';
 import { type Handlers, type MessageMap, onMessage, sendToTab } from '../messaging/protocol';
 import { testConnection as defaultTestConnection } from '../providers/index';
+import { setUsageListener, type UsageEvent } from '../providers/usage';
 import {
   canTranslate,
   clearInvalidKey,
+  dailyLimitReached,
   getBrokenState,
   getGlobalSettings,
   getRoomSettings,
@@ -16,6 +18,7 @@ import {
   watchGlobalSettings,
   watchInvalidKeys,
 } from '../settings/storage';
+import { addUsage } from '../settings/usage';
 import { refreshBadge } from './badge';
 import * as cache from './cache';
 import { createEngine, type Engine } from './engine';
@@ -24,6 +27,7 @@ import { createEngine, type Engine } from './engine';
  * background service worker 배선. 엔트리(entrypoints/background.ts)는 `startBackground()` 만 부른다.
  * - 메시지 핸들러, 설치 직후 옵션 페이지, 단축키 → 활성 chat 탭
  * - 설정·키·상태 변경 → 모든 chat.google.com 탭에 settings.changed 브로드캐스트 + 배지 갱신
+ * - 서비스 응답의 토큰 사용량 → 사용량 기록. 일일 상한 도달 여부가 바뀌면 같은 브로드캐스트.
  * 키는 어떤 메시지에도 싣지 않는다.
  */
 
@@ -91,6 +95,21 @@ export async function broadcastSettingsChanged(): Promise<void> {
   await Promise.all(
     ids.map((id) => sendToTab(id, 'settings.changed', payload).catch(() => undefined)),
   );
+}
+
+/**
+ * 사용량 한 건을 기록한다. 기록 전후로 일일 상한 도달 여부가 바뀌었으면 참을 돌려준다
+ * (호출자가 설정 변경과 같은 경로로 브로드캐스트·배지 갱신을 한다). 던지지 않는다.
+ */
+export async function recordUsage(event: UsageEvent, now: number = Date.now()): Promise<boolean> {
+  try {
+    const before = await dailyLimitReached(now);
+    await addUsage(event.provider, event.usage, now);
+    const after = await dailyLimitReached(now);
+    return before !== after;
+  } catch {
+    return false;
+  }
 }
 
 /** 현재 창의 활성 chat.google.com 탭에 단축키 명령을 전달한다. */
@@ -192,6 +211,14 @@ export function startBackground(deps: BackgroundDeps = {}): () => void {
   disposers.push(watchApiKeys(onChange));
   disposers.push(watchInvalidKeys(onChange));
   disposers.push(watchBrokenState(onChange));
+
+  const now = deps.now ?? (() => Date.now());
+  setUsageListener((event) => {
+    void recordUsage(event, now()).then((crossed) => {
+      if (crossed) onChange();
+    });
+  });
+  disposers.push(() => setUsageListener(null));
 
   void refreshBadge();
 
