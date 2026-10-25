@@ -10,6 +10,7 @@ import {
   getCurrentRoom,
   getMessageRoomId,
   getOwnContentNodes,
+  getRoomHeaderSlot,
   getSelfUserId,
   getTranslationAnchor,
   isComposerEmpty,
@@ -511,6 +512,29 @@ describe('composer', () => {
     button.removeAttribute('aria-disabled');
     expect(clickSend(button)).toBe(true);
     expect(onClick).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('room header', () => {
+  it('전체 화면 보기: 머리글 줄의 마지막 빈 요소 앞', () => {
+    loadFixture('header-full.html');
+    const slot = getRoomHeaderSlot();
+    expect(slot?.parent.matches('[jsname="yXpuyc"] > div')).toBe(true);
+    expect(slot?.before?.classList.contains('wYx9me')).toBe(true);
+  });
+
+  it('홈 오른쪽 창 보기: 오른쪽 아이콘 묶음 앞', () => {
+    loadFixture('header-pane.html');
+    const slot = getRoomHeaderSlot();
+    expect(slot?.parent.tagName).toBe('HEADER');
+    expect(slot?.before?.tagName).toBe('SECTION');
+  });
+
+  it('대화방 화면이 아니거나 머리글이 없으면 null', () => {
+    document.body.innerHTML = '';
+    expect(getRoomHeaderSlot()).toBeNull();
+    loadFixture('dm-messages.html');
+    expect(getRoomHeaderSlot()).toBeNull();
   });
 });
 

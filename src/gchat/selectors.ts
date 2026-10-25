@@ -65,6 +65,20 @@ export const SELECTORS = {
   /** 보내기 버튼. aria-label 은 로케일 의존("메시지 보내기")이라 쓰지 않는다. 확인 2026-10-23, 실제 화면. */
   sendButton: 'button[jsname="GBTyxb"]',
   /**
+   * 대화방 화면 전체(머리글 + `conversationRoot`). 현재 방 루트의 가장 가까운 이 조상에서 머리글을 찾는다.
+   * 확인 2026-10-25, 실제 화면(한국어, 스페이스·DM, 전체 화면 보기와 홈 오른쪽 창 보기 모두).
+   */
+  roomPane: 'div[jsname="BNT4Ge"]',
+  /** `roomPane` 의 직계 자식인 방 머리글(방 이름 줄). 확인 2026-10-25, 실제 화면(두 보기 모두). */
+  roomHeader: '[jsname="uwkwCe"]',
+  /**
+   * 전체 화면 보기 머리글의 가로 flex 줄. 자식: 방 이름 · 검색·팝업 아이콘 묶음 · 남는 폭을 채우는 빈 요소(마지막).
+   * 오른쪽 끝은 Google 의 옆 도구 막대에 가려지므로 마지막 빈 요소 앞에 넣는다. 확인 2026-10-25, 실제 화면.
+   */
+  headerRowFull: '[jsname="yXpuyc"] > div',
+  /** 홈 오른쪽 창 보기 머리글의 오른쪽 아이콘 묶음(전체 화면으로 열기 · 닫기). 그 앞에 넣는다. 확인 2026-10-25, 실제 화면. */
+  headerActionsPane: 'header > section',
+  /**
    * 사이드바 대화방 항목 — **부분 확인**. 2026-10-23 실제 화면에서 `span[role="listitem"][data-group-id]` 요소의
    * 존재는 확인했으나 그 안의 이름 요소 구조는 확인하지 못했다(best effort; 못 찾으면 이름 없음).
    */

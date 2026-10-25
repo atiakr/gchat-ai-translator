@@ -59,6 +59,12 @@ export interface ComposerInfo {
   region: HTMLElement;
 }
 
+/** 방 머리글에 확장 요소를 넣을 자리: `parent` 안, `before` 앞(`null` 이면 끝). */
+export interface HeaderSlot {
+  parent: HTMLElement;
+  before: Element | null;
+}
+
 export interface RichContentReport {
   /** @멘션 칩 등 순수 텍스트 래퍼가 아닌 요소. */
   mentions: boolean;
@@ -521,6 +527,25 @@ export function getActiveComposer(): ComposerInfo | null {
     }
     const inMain = composers.find((c) => safeClosest(c.textbox, SELECTORS.conversationRoot));
     return inMain ?? composers[0] ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** 현재 방 머리글에서 확장 요소를 넣을 자리. 머리글을 못 찾으면 `null`. */
+export function getRoomHeaderSlot(): HeaderSlot | null {
+  try {
+    const main = safeQuery(document, SELECTORS.conversationRoot);
+    const pane = safeClosest(main, SELECTORS.roomPane);
+    if (!pane) return null;
+    const header = Array.from(pane.children).find((c) => safeMatches(c, SELECTORS.roomHeader));
+    if (!header) return null;
+    const actions = safeQuery(header, SELECTORS.headerActionsPane);
+    if (actions?.parentElement) return { parent: actions.parentElement, before: actions };
+    const row = safeQuery(header, SELECTORS.headerRowFull);
+    if (!row) return null;
+    // 마지막 자식은 남는 폭을 채우는 빈 요소다. 그 앞에 두어야 방 이름 옆에 보인다.
+    return { parent: row, before: row.childElementCount >= 2 ? row.lastElementChild : null };
   } catch {
     return null;
   }
