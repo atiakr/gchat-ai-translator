@@ -298,17 +298,22 @@ function makeMounts(): FakeMounts {
 interface FakeOutgoing extends OutgoingLike {
   mountCalls: { roomId: string; enabled: boolean }[];
   enabledCalls: boolean[];
+  enterCalls: boolean[];
 }
 
 function makeOutgoing(): FakeOutgoing {
   const o: FakeOutgoing = {
     mountCalls: [],
     enabledCalls: [],
+    enterCalls: [],
     mount: vi.fn((roomId: string, enabled: boolean) => {
       o.mountCalls.push({ roomId, enabled });
     }),
     setEnabled: vi.fn((enabled: boolean) => {
       o.enabledCalls.push(enabled);
+    }),
+    setEnterTranslate: vi.fn((on: boolean) => {
+      o.enterCalls.push(on);
     }),
     onCommand: vi.fn(),
     restoreSentOriginals: vi.fn(async () => {}),
@@ -982,6 +987,52 @@ describe('대화방별 끄기', () => {
     await flush();
     expect(messaging.of('translate.batch')).toHaveLength(2);
     expect(mounts.statusOf(a)).toBe('translated');
+  });
+});
+
+describe('대화방별 Enter 번역', () => {
+  it('방 설정의 Enter 번역을 발신 컨트롤러에 넘기고, 바뀌면 다시 넘긴다', async () => {
+    rig = makeRig();
+    const { adapter, outgoing, rooms } = rig;
+    rooms.map.set(ROOM, { roomId: ROOM, incomingDisabled: false, enterTranslates: true });
+    adapter.add('a', 'hello');
+    await rig.controller.start();
+    await flush();
+    expect(outgoing.enterCalls.at(-1)).toBe(true);
+
+    rooms.map.set(ROOM, { roomId: ROOM, incomingDisabled: false });
+    rooms.watcher?.();
+    await flush();
+    expect(outgoing.enterCalls.at(-1)).toBe(false);
+  });
+
+  it('방이 바뀌면 새 방 설정을 읽기 전에 Enter 번역을 끈다', async () => {
+    rig = makeRig();
+    const { adapter, outgoing, rooms } = rig;
+    rooms.map.set(ROOM, { roomId: ROOM, incomingDisabled: false, enterTranslates: true });
+    adapter.add('a', 'hello');
+    await rig.controller.start();
+    await flush();
+    expect(outgoing.enterCalls).toEqual([true]);
+
+    let release: () => void = () => {};
+    vi.mocked(rooms.getRoomSettings).mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          release = () =>
+            resolve({ roomId: 'space/room2', incomingDisabled: false, enterTranslates: true });
+        }),
+    );
+    adapter.room = { roomId: 'space/room2', name: 'Team' };
+    for (const c of [...adapter.containers]) adapter.remove(c);
+    const n = adapter.add('r2-a', 'alpha', { roomId: 'space/room2' });
+    adapter.emit([n]);
+    await flush();
+    expect(outgoing.enterCalls).toEqual([true, false]);
+
+    release();
+    await flush();
+    expect(outgoing.enterCalls).toEqual([true, false, true]);
   });
 });
 

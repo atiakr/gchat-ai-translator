@@ -54,7 +54,7 @@ export type ContentAdapter = Pick<
 /** 이 컨트롤러가 쓰는 발신 컨트롤러 표면. */
 export type OutgoingLike = Pick<
   OutgoingController,
-  'mount' | 'setEnabled' | 'onCommand' | 'restoreSentOriginals' | 'destroy'
+  'mount' | 'setEnabled' | 'setEnterTranslate' | 'onCommand' | 'restoreSentOriginals' | 'destroy'
 >;
 
 export interface ContentDeps {
@@ -151,6 +151,8 @@ export function createContentController(overrides: Partial<ContentDeps> = {}): C
   let canTranslate = false;
   let roomId: string | null = null;
   let roomIncomingDisabled = false;
+  /** 이 방에서 그냥 Enter 도 번역 미리보기를 거친다. */
+  let roomEnterTranslates = false;
   /** 방 설정을 읽는 동안에는 요청을 보내지 않는다(꺼진 방에 요청이 새지 않게). */
   let roomReady = false;
   /** 지금 방 설정을 읽는 중인 방 id(중복 읽기 방지). */
@@ -570,14 +572,24 @@ export function createContentController(overrides: Partial<ContentDeps> = {}): C
     return guard('getCurrentRoom', () => adapter.getCurrentRoom(), null);
   }
 
-  async function readRoomSettings(id: string): Promise<boolean> {
+  async function readRoomSettings(
+    id: string,
+  ): Promise<{ incomingDisabled: boolean; enterTranslates: boolean }> {
     try {
       const roomSettings = await deps.getRoomSettings(id);
-      return roomSettings?.incomingDisabled === true;
+      return {
+        incomingDisabled: roomSettings?.incomingDisabled === true,
+        enterTranslates: roomSettings?.enterTranslates === true,
+      };
     } catch (error) {
       warn('getRoomSettings', error);
-      return false;
+      return { incomingDisabled: false, enterTranslates: false };
     }
+  }
+
+  function applyEnterTranslate(on: boolean): void {
+    roomEnterTranslates = on;
+    guard('outgoing.setEnterTranslate', () => outgoing?.setEnterTranslate(on), undefined);
   }
 
   /** 현재 방을 다시 보고, 바뀌었으면 방 상태를 초기화한 뒤 방 설정을 읽어 다시 처리한다. */
@@ -592,6 +604,8 @@ export function createContentController(overrides: Partial<ContentDeps> = {}): C
       resetSeen();
       lastIncomingActive = false;
       guard('unmountAll', () => deps.unmountAll(), undefined);
+      // 새 방의 설정을 읽기 전에는 이전 방의 Enter 번역을 이어 쓰지 않는다.
+      if (roomEnterTranslates) applyEnterTranslate(false);
     }
     if (roomId === null) {
       roomIncomingDisabled = false;
@@ -601,12 +615,13 @@ export function createContentController(overrides: Partial<ContentDeps> = {}): C
     const loadingFor = roomId;
     const loadEpoch = epoch;
     roomLoading = loadingFor;
-    const disabled = await readRoomSettings(loadingFor);
+    const room = await readRoomSettings(loadingFor);
     if (stopped || loadingFor !== roomId || loadEpoch !== epoch) return;
     roomLoading = null;
-    roomIncomingDisabled = disabled;
+    roomIncomingDisabled = room.incomingDisabled;
     roomReady = true;
     mountOutgoing();
+    applyEnterTranslate(room.enterTranslates);
     refreshIncoming();
     restoreOwn(guard('listMessageContainers', () => adapter.listMessageContainers(), []));
   }
@@ -614,9 +629,10 @@ export function createContentController(overrides: Partial<ContentDeps> = {}): C
   async function reloadRoomSettings(): Promise<void> {
     if (roomId === null) return;
     const loadingFor = roomId;
-    const disabled = await readRoomSettings(loadingFor);
+    const room = await readRoomSettings(loadingFor);
     if (stopped || loadingFor !== roomId || !roomReady) return;
-    roomIncomingDisabled = disabled;
+    roomIncomingDisabled = room.incomingDisabled;
+    applyEnterTranslate(room.enterTranslates);
     refreshIncoming();
   }
 
