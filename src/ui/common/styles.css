@@ -477,3 +477,56 @@
   font-weight: 500;
   overflow-wrap: anywhere;
 }
+
+/* ---- Usage table (options) ---- */
+.gat-usage {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gat-space-2);
+}
+
+.gat-usage__title {
+  margin: 0;
+  font-size: var(--gat-font-size-sm);
+  font-weight: 600;
+  color: var(--gat-fg-secondary);
+}
+
+.gat-usage__prices {
+  align-items: flex-start;
+}
+
+.gat-usage__prices .gat-field {
+  flex: 1 1 200px;
+}
+
+.gat-usage__priceHelp {
+  flex-basis: 100%;
+}
+
+.gat-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--gat-font-size-sm);
+}
+
+.gat-table th,
+.gat-table td {
+  padding: var(--gat-space-1) var(--gat-space-2);
+  text-align: left;
+  border-bottom: 1px solid var(--gat-border);
+}
+
+.gat-table thead th {
+  color: var(--gat-fg-muted);
+  font-weight: 500;
+}
+
+.gat-table tbody th {
+  font-weight: 500;
+}
+
+.gat-table__num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}

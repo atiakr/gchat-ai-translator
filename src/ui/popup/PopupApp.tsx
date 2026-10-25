@@ -6,7 +6,9 @@ import { browser } from 'wxt/browser';
 import { DEFAULTS } from '../../config/defaults';
 import { type I18nKey, t } from '../../i18n/t';
 import { sendToTab } from '../../messaging/protocol';
+import type { GlobalSettings } from '../../settings/schema';
 import { roomInstructions } from '../../settings/storage';
+import { estimateCost, sumByProvider, summarizeUsage, totalTokens } from '../../settings/usage';
 import { Banner } from '../common/Banner';
 import { Button } from '../common/Button';
 import { Card } from '../common/Card';
@@ -14,7 +16,9 @@ import { Select } from '../common/Select';
 import { Toggle } from '../common/Toggle';
 import { providerLabel, roomOutgoingOptions } from '../settings/options';
 import { RoomInstructionsField } from '../settings/RoomInstructionsField';
+import { formatTokenCount, formatUsd } from '../settings/usageFormat';
 import { useSystemTheme } from '../settings/useSystemTheme';
+import { useUsage } from '../settings/useUsage';
 import { usePopupSettings, useRoomSettings } from './usePopupSettings';
 
 const CHAT_ORIGIN = 'https://chat.google.com/';
@@ -45,6 +49,7 @@ export function PopupApp() {
   useSystemTheme();
   const store = usePopupSettings();
   const { settings, gate } = store;
+  const usage = useUsage();
   const [room, setRoom] = useState<CurrentRoom | null>(null);
 
   useEffect(() => {
@@ -61,6 +66,7 @@ export function PopupApp() {
   const model = settings.models[provider];
   const noKey = gate?.reason === 'no_key';
   const invalidKey = gate?.reason === 'invalid_key';
+  const budget = gate?.reason === 'budget';
   const optionsLink = (
     <Button variant="link" size="sm" onClick={openOptions}>
       {t('common_openOptions')}
@@ -96,6 +102,7 @@ export function PopupApp() {
           </Banner>
         )
       )}
+      {budget && <Banner tone="warning">{t('common_budgetReached')}</Banner>}
       {store.broken && <Banner tone="warning">{t('options_brokenBanner')}</Banner>}
 
       <Card compact>
@@ -104,6 +111,7 @@ export function PopupApp() {
           <dd>{providerLabel(provider)}</dd>
           <dt>{t('popup_summaryModel')}</dt>
           <dd>{model || <span className="gat-muted">{t('popup_noModel')}</span>}</dd>
+          {usage && <UsageRows settings={settings} usage={usage} />}
         </dl>
       </Card>
 
@@ -111,6 +119,35 @@ export function PopupApp() {
 
       <footer className="popup-footer">{optionsLink}</footer>
     </main>
+  );
+}
+
+/** 오늘·이번 달 토큰 사용량(모든 서비스 합). 단가가 있으면 서비스별 어림 금액을 더해 보인다. */
+function UsageRows({
+  settings,
+  usage,
+  now = Date.now,
+}: {
+  settings: GlobalSettings;
+  usage: Parameters<typeof summarizeUsage>[0];
+  now?: () => number;
+}) {
+  const summary = summarizeUsage(usage, now());
+  const line = (by: typeof summary.today) => {
+    const tokens = formatTokenCount(totalTokens(sumByProvider(by)));
+    const cost = (Object.keys(by) as (keyof typeof by)[]).reduce<number | null>((acc, id) => {
+      const c = estimateCost(by[id], settings.prices[id]);
+      return c === null ? acc : (acc ?? 0) + c;
+    }, null);
+    return cost === null ? tokens : `${tokens} · ${formatUsd(cost)}`;
+  };
+  return (
+    <>
+      <dt>{t('popup_usageToday')}</dt>
+      <dd>{line(summary.today)}</dd>
+      <dt>{t('popup_usageMonth')}</dt>
+      <dd>{line(summary.month)}</dd>
+    </>
   );
 }
 

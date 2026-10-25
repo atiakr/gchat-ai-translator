@@ -12,6 +12,7 @@ import { LimitsSection } from './LimitsSection';
 import { providerLabel } from './options';
 import { ProviderSection } from './ProviderSection';
 import { RoomsSection } from './RoomsSection';
+import { UsageSection } from './UsageSection';
 import { useSettings } from './useSettings';
 import { useSystemTheme } from './useSystemTheme';
 
@@ -63,6 +64,7 @@ export function OptionsApp() {
           />
           <LanguageSection settings={settings} updateSettings={store.updateSettings} />
           <LimitsSection settings={settings} updateSettings={store.updateSettings} />
+          <UsageSection settings={settings} updateSettings={store.updateSettings} />
           <RoomsSection
             rooms={store.rooms}
             updateRoom={store.updateRoom}

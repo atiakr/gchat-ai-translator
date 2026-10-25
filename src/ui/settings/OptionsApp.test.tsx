@@ -22,6 +22,7 @@ describe('options App', () => {
     for (const key of [
       'options_sectionLanguage',
       'options_sectionLimits',
+      'options_sectionUsage',
       'options_sectionRooms',
       'options_sectionData',
     ]) {
