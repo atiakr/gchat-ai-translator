@@ -7,12 +7,14 @@ import {
   type BrokenState,
   DEFAULT_GLOBAL_SETTINGS,
   EMPTY_API_KEYS,
+  type GateReason,
   type GlobalSettings,
   type InvalidKeyState,
   ROOM_KEY_PREFIX,
   type RoomSettings,
   roomSettingsKey,
 } from './schema';
+import { getUsageStore, isDailyLimitReached } from './usage';
 
 /**
  * 저장 계층. 규칙:
@@ -167,13 +169,20 @@ export async function markOnboarded(): Promise<void> {
   await installedItem.setValue(true);
 }
 
+/** 오늘 쓴 토큰이 일일 상한에 도달했는가. 상한이 0 이면 항상 거짓. */
+export async function dailyLimitReached(now: number = Date.now()): Promise<boolean> {
+  const settings = await getGlobalSettings();
+  if (!(settings.dailyTokenLimit > 0)) return false;
+  return isDailyLimitReached(settings.dailyTokenLimit, await getUsageStore(), now);
+}
+
 /**
- * 번역 가능 조건: 전역 스위치 + 활성 서비스의 유효한 키(커스텀 서비스는 빈 키 허용, 대신 주소 필수).
- * 하나라도 아니면 어떤 번역 호출도 하지 않는다.
+ * 번역 가능 조건: 전역 스위치 + 활성 서비스의 유효한 키(커스텀 서비스는 빈 키 허용, 대신 주소 필수)
+ * + 오늘 토큰 상한 미도달. 하나라도 아니면 어떤 번역 호출도 하지 않는다.
  */
 export async function canTranslate(): Promise<{
   ok: boolean;
-  reason?: 'disabled' | 'no_key' | 'invalid_key';
+  reason?: GateReason;
 }> {
   const settings = await getGlobalSettings();
   if (!settings.enabled) return { ok: false, reason: 'disabled' };
@@ -187,5 +196,11 @@ export async function canTranslate(): Promise<{
   }
   const invalid = await getInvalidKeys();
   if (invalid[provider]) return { ok: false, reason: 'invalid_key' };
+  if (
+    settings.dailyTokenLimit > 0 &&
+    isDailyLimitReached(settings.dailyTokenLimit, await getUsageStore(), Date.now())
+  ) {
+    return { ok: false, reason: 'budget' };
+  }
   return { ok: true };
 }

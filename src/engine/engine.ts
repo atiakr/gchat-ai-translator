@@ -5,7 +5,7 @@ import type {
   TranslateBatchResultItem,
 } from '../messaging/protocol';
 import { getProvider as defaultGetProvider } from '../providers/index';
-import type { CacheEntry } from '../settings/schema';
+import type { CacheEntry, GateReason } from '../settings/schema';
 import {
   canTranslate,
   getApiKeys,
@@ -94,8 +94,9 @@ function errorItem(messageId: string, errorKind: ErrorKind): TranslateBatchResul
   return { messageId, status: 'error', errorKind };
 }
 
-function gateErrorKind(reason: 'disabled' | 'no_key' | 'invalid_key' | undefined): ErrorKind {
-  return reason === 'disabled' ? 'bad_request' : 'auth';
+/** 게이트 이유 → 오류 종류. 꺼짐·상한 도달은 요청 거부(bad_request), 키 문제는 auth. */
+function gateErrorKind(reason: GateReason | undefined): ErrorKind {
+  return reason === 'disabled' || reason === 'budget' ? 'bad_request' : 'auth';
 }
 
 function errorKindOf(err: unknown): ErrorKind {

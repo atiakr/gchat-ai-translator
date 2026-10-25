@@ -8,6 +8,7 @@ import {
   setInvalidKey,
   setRoomSettings,
 } from '../settings/storage';
+import { addUsage } from '../settings/usage';
 import * as cache from './cache';
 import { combineInstructions, createEngine, type EngineDeps } from './engine';
 import { hashString } from './hash';
@@ -76,6 +77,18 @@ describe('translateBatch — 호출 조건', () => {
     const { engine, translate } = engineWith();
     const out = await engine.translateBatch('r', 'ko', [item('a')]);
     expect(out).toEqual([{ messageId: 'a', status: 'error', errorKind: 'auth' }]);
+    expect(translate).not.toHaveBeenCalled();
+  });
+  it('오늘 토큰 상한에 이르렀으면 error/bad_request, 호출 없음(수신·발신 모두)', async () => {
+    await setGlobalSettings({ dailyTokenLimit: 10 });
+    await addUsage('openai', { inputTokens: 10, outputTokens: 0 });
+    const { engine, translate } = engineWith();
+    const out = await engine.translateBatch('r', 'ko', [item('a')]);
+    expect(out).toEqual([{ messageId: 'a', status: 'error', errorKind: 'bad_request' }]);
+    expect(await engine.translateOutgoing('r', '안녕', 'en')).toEqual({
+      ok: false,
+      errorKind: 'bad_request',
+    });
     expect(translate).not.toHaveBeenCalled();
   });
   it('틀린 키 상태면 error/auth, 호출 없음', async () => {

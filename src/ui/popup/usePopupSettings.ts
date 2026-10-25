@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { sendMessage } from '../../messaging/protocol';
-import type { BrokenState, GlobalSettings, RoomSettings } from '../../settings/schema';
+import type { BrokenState, GateReason, GlobalSettings, RoomSettings } from '../../settings/schema';
 import {
   getBrokenState,
   getGlobalSettings,
@@ -20,7 +20,7 @@ import { type SaveError, toSaveError } from '../settings/saveError';
  * 설정·틀린 키 상태가 바뀌면 다시 묻는다. 화면 구조 깨짐은 local 상태를 직접 본다.
  */
 
-export type GateReason = 'disabled' | 'no_key' | 'invalid_key';
+export type { GateReason };
 
 export interface PopupGate {
   canTranslate: boolean;

@@ -23,6 +23,10 @@ export const DEFAULTS = {
   maxAutoPerRoom: 200,
   /** 대화방별 추가 지시문 최대 길이(자). 방 설정 sync 항목 하나(8KB) 안에 들어가도록 둔다. */
   maxRoomInstructionsChars: 1000,
+  /** 일일 토큰 상한 기본값. 0 이면 상한 없음. */
+  dailyTokenLimit: 0,
+  /** 사용량 기록 보관 일수. 이번 달 집계에 충분하도록 두 달치를 둔다. */
+  usageRetentionDays: 62,
   /** 팝업의 텍스트 입력을 입력이 멈춘 뒤 저장하기까지 기다리는 시간(ms). */
   popupAutoSaveMs: 1000,
   /**

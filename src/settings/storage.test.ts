@@ -2,10 +2,11 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { fakeBrowser } from 'wxt/testing/fake-browser';
 import { DEFAULTS } from '../config/defaults';
 import { migrateGlobalSettings } from './migrate';
-import { DEFAULT_GLOBAL_SETTINGS } from './schema';
+import { DEFAULT_GLOBAL_SETTINGS, SETTINGS_VERSION } from './schema';
 import {
   canTranslate,
   clearInvalidKey,
+  dailyLimitReached,
   getApiKeys,
   getGlobalSettings,
   getInvalidKeys,
@@ -18,6 +19,7 @@ import {
   setInvalidKey,
   setRoomSettings,
 } from './storage';
+import { addUsage } from './usage';
 
 beforeEach(() => fakeBrowser.reset());
 
@@ -50,13 +52,38 @@ describe('migrateGlobalSettings', () => {
     expect(out.activeProvider).toBe('openai');
     expect(out.targetLang).toBe('ja');
     expect(out.maxAutoPerRoom).toBe(200);
-    expect(out.version).toBe(2);
+    expect(out.version).toBe(SETTINGS_VERSION);
   });
   it('v1 → v2: 원문 숨기기(hideOriginal) 필드를 버리고 나머지는 유지한다', () => {
     const out = migrateGlobalSettings({ version: 1, hideOriginal: true, targetLang: 'ja' });
-    expect(out.version).toBe(2);
+    expect(out.version).toBe(SETTINGS_VERSION);
     expect(out.targetLang).toBe('ja');
     expect('hideOriginal' in out).toBe(false);
+  });
+  it('v2 → v3: 일일 토큰 상한과 단가가 없으면 기본값(상한 없음, 단가 0)', () => {
+    const out = migrateGlobalSettings({ version: 2, targetLang: 'ja' });
+    expect(out.version).toBe(3);
+    expect(out.dailyTokenLimit).toBe(0);
+    expect(out.prices).toEqual({
+      openai: { input: 0, output: 0 },
+      anthropic: { input: 0, output: 0 },
+      openai_compatible: { input: 0, output: 0 },
+    });
+  });
+  it('일일 토큰 상한·단가는 0 이상의 수만 받고 손상된 값은 기본값', () => {
+    const out = migrateGlobalSettings({
+      version: 3,
+      dailyTokenLimit: 12345.7,
+      prices: { openai: { input: 0.15, output: '0.6' }, anthropic: null, bogus: { input: 1 } },
+    });
+    expect(out.dailyTokenLimit).toBe(12345);
+    expect(out.prices.openai).toEqual({ input: 0.15, output: 0 });
+    expect(out.prices.anthropic).toEqual({ input: 0, output: 0 });
+    expect(migrateGlobalSettings({ dailyTokenLimit: -5 }).dailyTokenLimit).toBe(0);
+    expect(migrateGlobalSettings({ dailyTokenLimit: Number.NaN }).dailyTokenLimit).toBe(0);
+    expect(migrateGlobalSettings({ prices: { openai: { input: -1 } } }).prices.openai.input).toBe(
+      0,
+    );
   });
 });
 
@@ -76,7 +103,7 @@ describe('storage 영역 규칙', () => {
     const s = await getGlobalSettings();
     expect(s.targetLang).toBe('ja');
     expect(s.enabled).toBe(false);
-    expect(s.version).toBe(2);
+    expect(s.version).toBe(SETTINGS_VERSION);
   });
   it('방별 설정은 방마다 sync 항목 하나(room:<id>)', async () => {
     await setRoomSettings('room/AAA', { incomingDisabled: true, name: 'Alpha' });
@@ -152,6 +179,27 @@ describe('틀린 키 상태와 번역 가능 조건', () => {
     expect((await canTranslate()).reason).toBe('invalid_key');
     await clearInvalidKey('openai_compatible');
     expect(await canTranslate()).toEqual({ ok: true });
+  });
+  it('오늘 토큰이 일일 상한에 이르면 budget, 상한 0 이면 무시, 다음 날이면 다시 ok', async () => {
+    await setApiKey('openai', 'k1');
+    const today = new Date(2026, 9, 24, 12).getTime();
+    await addUsage('openai', { inputTokens: 600, outputTokens: 400 }, today);
+    expect(await canTranslate()).toEqual({ ok: true });
+    await setGlobalSettings({ dailyTokenLimit: 1000 });
+    expect(await dailyLimitReached(today)).toBe(true);
+    expect(await dailyLimitReached(today + 24 * 60 * 60 * 1000)).toBe(false);
+    await setGlobalSettings({ dailyTokenLimit: 1001 });
+    expect(await dailyLimitReached(today)).toBe(false);
+    await setGlobalSettings({ dailyTokenLimit: 0 });
+    expect(await dailyLimitReached(today)).toBe(false);
+  });
+  it('상한 도달은 canTranslate 를 budget 으로 막고, 키 문제가 있으면 키 문제가 먼저다', async () => {
+    await setApiKey('openai', 'k1');
+    await setGlobalSettings({ dailyTokenLimit: 10 });
+    await addUsage('anthropic', { inputTokens: 10, outputTokens: 0 }, Date.now());
+    expect(await canTranslate()).toEqual({ ok: false, reason: 'budget' });
+    await setInvalidKey('openai', 'auth');
+    expect(await canTranslate()).toEqual({ ok: false, reason: 'invalid_key' });
   });
   it('커스텀 서비스인데 주소가 비어 있으면 no_key', async () => {
     await setGlobalSettings({ activeProvider: 'openai_compatible', customBaseUrl: '' });

@@ -3,6 +3,8 @@ import {
   type GlobalSettings,
   isProviderId,
   SETTINGS_VERSION,
+  type TokenPrice,
+  ZERO_PRICE,
 } from './schema';
 
 /**
@@ -23,10 +25,19 @@ export function migrateGlobalSettings(stored: unknown): GlobalSettings {
     delete base.hideOriginal;
     base.version = 2;
   }
+  // v2 → v3: 일일 토큰 상한(dailyTokenLimit)과 서비스별 단가(prices) 추가. 없으면 기본값.
+  if (version < 3) {
+    base.version = 3;
+  }
 
   const out: GlobalSettings = {
     ...DEFAULT_GLOBAL_SETTINGS,
     models: { ...DEFAULT_GLOBAL_SETTINGS.models },
+    prices: {
+      openai: { ...ZERO_PRICE },
+      anthropic: { ...ZERO_PRICE },
+      openai_compatible: { ...ZERO_PRICE },
+    },
   };
   if (typeof base.enabled === 'boolean') out.enabled = base.enabled;
   if (isProviderId(base.activeProvider)) out.activeProvider = base.activeProvider;
@@ -45,6 +56,27 @@ export function migrateGlobalSettings(stored: unknown): GlobalSettings {
     out.maxMessageChars = base.maxMessageChars;
   if (typeof base.maxAutoPerRoom === 'number' && base.maxAutoPerRoom > 0)
     out.maxAutoPerRoom = base.maxAutoPerRoom;
+  if (isNonNegativeNumber(base.dailyTokenLimit))
+    out.dailyTokenLimit = Math.floor(base.dailyTokenLimit);
+  if (base.prices && typeof base.prices === 'object') {
+    for (const id of Object.keys(out.prices) as (keyof GlobalSettings['prices'])[]) {
+      const v = (base.prices as Record<string, unknown>)[id];
+      out.prices[id] = sanitizePrice(v);
+    }
+  }
   out.version = SETTINGS_VERSION;
   return out;
+}
+
+function isNonNegativeNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0;
+}
+
+/** 단가는 0 이상의 유한한 수만 받는다. 손상된 값은 0(미설정). */
+function sanitizePrice(value: unknown): TokenPrice {
+  const raw = value && typeof value === 'object' ? (value as Record<string, unknown>) : {};
+  return {
+    input: isNonNegativeNumber(raw.input) ? raw.input : 0,
+    output: isNonNegativeNumber(raw.output) ? raw.output : 0,
+  };
 }

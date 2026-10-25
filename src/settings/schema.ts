@@ -2,7 +2,7 @@ import { DEFAULTS, type ProviderId } from '../config/defaults';
 import type { ErrorKind } from '../engine/types';
 
 /** 설정 스키마 버전. 구조가 바뀌면 올리고 migrate.ts 에 마이그레이션을 추가한다. */
-export const SETTINGS_VERSION = 2;
+export const SETTINGS_VERSION = 3;
 
 export const PROVIDER_IDS: readonly ProviderId[] = ['openai', 'anthropic', 'openai_compatible'];
 
@@ -19,7 +19,21 @@ export interface GlobalSettings {
   instructions: string;
   maxMessageChars: number;
   maxAutoPerRoom: number;
+  /** 하루 토큰 상한(입력+출력, 모든 서비스 합). 0 이면 상한 없음. */
+  dailyTokenLimit: number;
+  /** 서비스별 단가(USD / 100만 토큰). 0 이면 금액을 표시하지 않는다. */
+  prices: Record<ProviderId, TokenPrice>;
 }
+
+export interface TokenPrice {
+  input: number;
+  output: number;
+}
+
+export const ZERO_PRICE: TokenPrice = { input: 0, output: 0 };
+
+/** 번역 가능 여부가 거짓일 때의 이유. */
+export type GateReason = 'disabled' | 'no_key' | 'invalid_key' | 'budget';
 
 export const DEFAULT_GLOBAL_SETTINGS: GlobalSettings = {
   version: SETTINGS_VERSION,
@@ -32,6 +46,12 @@ export const DEFAULT_GLOBAL_SETTINGS: GlobalSettings = {
   instructions: '',
   maxMessageChars: DEFAULTS.maxMessageChars,
   maxAutoPerRoom: DEFAULTS.maxAutoPerRoom,
+  dailyTokenLimit: DEFAULTS.dailyTokenLimit,
+  prices: {
+    openai: { ...ZERO_PRICE },
+    anthropic: { ...ZERO_PRICE },
+    openai_compatible: { ...ZERO_PRICE },
+  },
 };
 
 /** 대화방별 설정(sync, 방 id 마다 항목 1개 `room:<id>`). */
@@ -64,6 +84,18 @@ export interface CacheEntry {
   translation?: string;
   detectedLang: string;
   savedAt: number;
+}
+
+/** 하루·서비스 하나의 토큰 사용량(local). */
+export interface UsageTotals {
+  inputTokens: number;
+  outputTokens: number;
+  calls: number;
+}
+
+/** 토큰 사용량 기록(local). 날짜 키는 이 기기의 현지 날짜 `YYYY-MM-DD`. */
+export interface UsageStore {
+  days: Record<string, Partial<Record<ProviderId, UsageTotals>>>;
 }
 
 /** 내 원문 기록 엔트리(local). */

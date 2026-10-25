@@ -1,7 +1,7 @@
 import { browser } from 'wxt/browser';
 import type { ProviderId } from '../config/defaults';
 import type { ErrorKind, TranslationStatus } from '../engine/types';
-import type { GlobalSettings } from '../settings/schema';
+import type { GateReason, GlobalSettings } from '../settings/schema';
 
 /**
  * content ↔ background ↔ popup/options 메시지 계약.
@@ -42,7 +42,7 @@ export interface MessageMap {
     response: {
       settings: GlobalSettings;
       canTranslate: boolean;
-      reason?: 'disabled' | 'no_key' | 'invalid_key';
+      reason?: GateReason;
     };
   };
   /** bg → 모든 chat 탭 브로드캐스트. 응답 없음. */
@@ -50,7 +50,7 @@ export interface MessageMap {
     request: {
       settings: GlobalSettings;
       canTranslate: boolean;
-      reason?: 'disabled' | 'no_key' | 'invalid_key';
+      reason?: GateReason;
     };
     response: undefined;
   };
