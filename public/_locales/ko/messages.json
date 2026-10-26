@@ -445,7 +445,7 @@
     "message": "사용량과 비용"
   },
   "options_sectionUsageHelp": {
-    "message": "번역 서비스 응답이 알려준 토큰 수를 이 기기에만 모아 보여줍니다. 금액은 아래 단가로 어림한 값이며 실제 청구액과 다를 수 있습니다."
+    "message": "번역 서비스 응답이 알려준 토큰 수를 이 기기에만 모델별로 모아 보여줍니다. 금액은 모델별 단가로 어림한 값이며 실제 청구액과 다를 수 있습니다."
   },
   "options_usageToday": {
     "message": "오늘"
@@ -455,6 +455,15 @@
   },
   "options_usageProvider": {
     "message": "서비스"
+  },
+  "options_usageModel": {
+    "message": "모델"
+  },
+  "options_usageModelUnknown": {
+    "message": "(모델 기록 없음)"
+  },
+  "options_usageTotal": {
+    "message": "합계"
   },
   "options_usageInputTokens": {
     "message": "입력 토큰"
@@ -478,15 +487,43 @@
     "message": "출력 단가 (USD / 100만 토큰)"
   },
   "options_priceHelp": {
-    "message": "$PROVIDER$ 의 단가입니다. 서비스 요금표의 값을 적으세요. 0 이면 금액을 표시하지 않습니다.",
+    "message": "$PROVIDER$ 의 $MODEL$ 기본 단가가 없습니다. 서비스 요금표의 값을 적으세요. 0 이면 금액을 표시하지 않습니다.",
     "placeholders": {
       "provider": {
         "content": "$1"
+      },
+      "model": {
+        "content": "$2"
       }
     }
   },
   "options_priceInvalid": {
     "message": "0 이상의 숫자를 입력하세요."
+  },
+  "options_priceNoModel": {
+    "message": "모델을 정하면 그 모델의 단가를 적을 수 있습니다."
+  },
+  "options_priceReset": {
+    "message": "기본 단가로 되돌리기"
+  },
+  "options_priceHelpCustom": {
+    "message": "$MODEL$ 에 직접 입력한 단가입니다.",
+    "placeholders": {
+      "model": {
+        "content": "$1"
+      }
+    }
+  },
+  "options_priceHelpBuiltin": {
+    "message": "$MODEL$ 의 공개 요금표 단가입니다($DATE$ 확인, 캐시·배치 할인 제외). 요금이 다르면 새 값을 적으세요.",
+    "placeholders": {
+      "model": {
+        "content": "$1"
+      },
+      "date": {
+        "content": "$2"
+      }
+    }
   },
   "popup_usageToday": {
     "message": "오늘 사용량"

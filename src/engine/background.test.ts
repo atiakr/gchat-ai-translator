@@ -268,7 +268,7 @@ describe('설치·단축키·브로드캐스트·배지', () => {
 });
 
 describe('토큰 사용량 기록', () => {
-  it('서비스가 보고한 usage 를 기록하고, 상한에 이르는 순간에만 브로드캐스트·배지 갱신한다', async () => {
+  it('서비스가 보고한 usage 를 모델별로 기록하고, 상한에 이르는 순간에만 브로드캐스트·배지 갱신한다', async () => {
     // 사용량 날짜와 게이트 판정이 같은 "오늘" 을 보도록 실제 시계로 다시 시작한다.
     stop?.();
     stop = startBackground({ engine, testConnection });
@@ -283,9 +283,7 @@ describe('토큰 사용량 기록', () => {
     await flush();
     await flush();
     expect(Object.values((await getUsageStore()).days)[0]?.openai).toEqual({
-      inputTokens: 40,
-      outputTokens: 10,
-      calls: 1,
+      m: { inputTokens: 40, outputTokens: 10, calls: 1 },
     });
     expect(tabsSendMessage).not.toHaveBeenCalled();
 

@@ -2,7 +2,7 @@ import { DEFAULTS, type ProviderId } from '../config/defaults';
 import type { ErrorKind } from '../engine/types';
 
 /** 설정 스키마 버전. 구조가 바뀌면 올리고 migrate.ts 에 마이그레이션을 추가한다. */
-export const SETTINGS_VERSION = 3;
+export const SETTINGS_VERSION = 4;
 
 export const PROVIDER_IDS: readonly ProviderId[] = ['openai', 'anthropic', 'openai_compatible'];
 
@@ -21,8 +21,11 @@ export interface GlobalSettings {
   maxAutoPerRoom: number;
   /** 하루 토큰 상한(입력+출력, 모든 서비스 합). 0 이면 상한 없음. */
   dailyTokenLimit: number;
-  /** 서비스별 단가(USD / 100만 토큰). 0 이면 금액을 표시하지 않는다. */
-  prices: Record<ProviderId, TokenPrice>;
+  /**
+   * 사용자가 직접 입력한 모델별 단가(USD / 100만 토큰). 서비스 → 모델 이름 → 단가.
+   * 여기 없는 모델은 내장 단가(`src/config/prices.ts`)를 쓴다. 입력·출력이 모두 0 이면 금액을 표시하지 않는다.
+   */
+  prices: Record<ProviderId, CustomPrices>;
 }
 
 export interface TokenPrice {
@@ -30,7 +33,8 @@ export interface TokenPrice {
   output: number;
 }
 
-export const ZERO_PRICE: TokenPrice = { input: 0, output: 0 };
+/** 모델 이름 → 직접 입력한 단가. */
+export type CustomPrices = Record<string, TokenPrice>;
 
 /** 번역 가능 여부가 거짓일 때의 이유. */
 export type GateReason = 'disabled' | 'no_key' | 'invalid_key' | 'budget';
@@ -47,11 +51,7 @@ export const DEFAULT_GLOBAL_SETTINGS: GlobalSettings = {
   maxMessageChars: DEFAULTS.maxMessageChars,
   maxAutoPerRoom: DEFAULTS.maxAutoPerRoom,
   dailyTokenLimit: DEFAULTS.dailyTokenLimit,
-  prices: {
-    openai: { ...ZERO_PRICE },
-    anthropic: { ...ZERO_PRICE },
-    openai_compatible: { ...ZERO_PRICE },
-  },
+  prices: { openai: {}, anthropic: {}, openai_compatible: {} },
 };
 
 /** 대화방별 설정(sync, 방 id 마다 항목 1개 `room:<id>`). */
@@ -88,16 +88,19 @@ export interface CacheEntry {
   savedAt: number;
 }
 
-/** 하루·서비스 하나의 토큰 사용량(local). */
+/** 하루·서비스·모델 하나의 토큰 사용량(local). */
 export interface UsageTotals {
   inputTokens: number;
   outputTokens: number;
   calls: number;
 }
 
-/** 토큰 사용량 기록(local). 날짜 키는 이 기기의 현지 날짜 `YYYY-MM-DD`. */
+/**
+ * 토큰 사용량 기록(local). 날짜(이 기기의 현지 날짜 `YYYY-MM-DD`) → 서비스 → 모델 이름 → 합계.
+ * 모델별로 나누기 전의 기록은 모델 이름 `''`(모름)으로 읽힌다.
+ */
 export interface UsageStore {
-  days: Record<string, Partial<Record<ProviderId, UsageTotals>>>;
+  days: Record<string, Partial<Record<ProviderId, Record<string, UsageTotals>>>>;
 }
 
 /** 내 원문 기록 엔트리(local). */
@@ -113,6 +116,11 @@ export function roomSettingsKey(roomId: string): `sync:room:${string}` {
 }
 
 export const ROOM_KEY_PREFIX = 'room:';
+
+/** 기록·단가 키로 쓰는 모델 이름. 앞뒤 공백을 떼고 `DEFAULTS.maxModelNameChars` 로 자른다. */
+export function normalizeModelName(raw: unknown): string {
+  return typeof raw === 'string' ? raw.trim().slice(0, DEFAULTS.maxModelNameChars) : '';
+}
 
 export function isProviderId(value: unknown): value is ProviderId {
   return typeof value === 'string' && (PROVIDER_IDS as readonly string[]).includes(value);

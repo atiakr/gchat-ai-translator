@@ -183,14 +183,14 @@ describe('popup App', () => {
     expect(watchApiKeys).not.toHaveBeenCalled();
   });
 
-  it('오늘·이번 달 사용량 줄을 보이고, 상한 도달이면 경고 배너를 띄운다', async () => {
+  it('오늘·이번 달 사용량 줄(내장 단가로 어림한 금액 포함)을 보이고, 상한 도달이면 경고 배너를 띄운다', async () => {
     sendMock.mockResolvedValue(null);
     await setApiKey('openai', 'sk-x');
-    await addUsage('openai', { inputTokens: 10, outputTokens: 5 });
+    await addUsage('openai', 'gpt-5-mini', { inputTokens: 10, outputTokens: 5 });
     render(<App />);
     await screen.findByText('popup_usageToday');
     expect(screen.getByText('popup_usageMonth')).toBeInTheDocument();
-    expect(screen.getAllByText('common_tokenCount')).toHaveLength(2);
+    expect(screen.getAllByText(/^common_tokenCount · \$\d/)).toHaveLength(2);
     expect(screen.queryByText('common_budgetReached')).toBeNull();
     await storage.setGlobalSettings({ dailyTokenLimit: 15 });
     await screen.findByText('common_budgetReached');

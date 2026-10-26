@@ -1,15 +1,19 @@
 import { useId, useState } from 'react';
 import type { ProviderId } from '../../config/defaults';
+import { BUILTIN_PRICES_CHECKED_AT, builtinPrice } from '../../config/prices';
 import { t } from '../../i18n/t';
-import { type GlobalSettings, PROVIDER_IDS, type TokenPrice } from '../../settings/schema';
+import { type GlobalSettings, normalizeModelName, type TokenPrice } from '../../settings/schema';
 import {
-  estimateCost,
   isDailyLimitReached,
+  resolvePrice,
+  rowCost,
   summarizeUsage,
-  totalTokens,
-  type UsageByProvider,
+  sumRows,
+  totalCost,
+  type UsageRow,
 } from '../../settings/usage';
 import { Banner } from '../common/Banner';
+import { Button } from '../common/Button';
 import { Card } from '../common/Card';
 import { Field } from '../common/Field';
 import { TextField } from '../common/TextField';
@@ -25,8 +29,8 @@ export interface UsageSectionProps {
 }
 
 /**
- * 옵션 "사용량과 비용": 오늘·이번 달 서비스별 토큰 수와 어림 금액, 활성 서비스의 단가 입력.
- * 사용량은 local 기록을 읽기만 한다. 단가는 전역 설정(sync)에 저장된다.
+ * 옵션 "사용량과 비용": 오늘·이번 달 서비스·모델별 토큰 수와 어림 금액, 활성 모델의 단가 입력.
+ * 사용량은 local 기록을 읽기만 한다. 금액은 직접 입력한 단가(전역 설정, sync)가 먼저, 없으면 내장 단가로 어림한다.
  */
 export function UsageSection({ settings, updateSettings, now = Date.now }: UsageSectionProps) {
   const store = useUsage();
@@ -34,10 +38,21 @@ export function UsageSection({ settings, updateSettings, now = Date.now }: Usage
   const summary = store ? summarizeUsage(store, at) : null;
   const reached = store ? isDailyLimitReached(settings.dailyTokenLimit, store, at) : false;
   const active = settings.activeProvider;
-  const savePrice = (patch: Partial<TokenPrice>) =>
-    updateSettings({
-      prices: { ...settings.prices, [active]: { ...settings.prices[active], ...patch } },
+  const model = normalizeModelName(settings.models[active]);
+  const resolved = resolvePrice(active, model, settings.prices);
+  const builtin = builtinPrice(active, model);
+  const setCustom = (next: TokenPrice | null) => {
+    const rest = Object.fromEntries(
+      Object.entries(settings.prices[active]).filter(([name]) => name !== model),
+    );
+    // 내장 단가와 같아지면 직접 입력 항목을 두지 않는다(sync 용량 절약, 내장 단가 갱신을 그대로 받음).
+    const same = next && builtin && next.input === builtin.input && next.output === builtin.output;
+    return updateSettings({
+      prices: { ...settings.prices, [active]: next && !same ? { ...rest, [model]: next } : rest },
     });
+  };
+  const savePrice = (patch: Partial<TokenPrice>) =>
+    setCustom({ input: 0, output: 0, ...resolved?.price, ...patch });
 
   return (
     <Card title={t('options_sectionUsage')} description={t('options_sectionUsageHelp')}>
@@ -46,31 +61,56 @@ export function UsageSection({ settings, updateSettings, now = Date.now }: Usage
         <>
           <UsageTable
             title={t('options_usageToday')}
-            usage={summary.today}
+            rows={summary.today}
             prices={settings.prices}
           />
           <UsageTable
             title={t('options_usageMonth')}
-            usage={summary.month}
+            rows={summary.month}
             prices={settings.prices}
           />
         </>
       )}
-      <PriceFields provider={active} price={settings.prices[active]} onSave={savePrice} />
+      {model ? (
+        <PriceFields
+          key={`${active}:${model}`}
+          provider={active}
+          model={model}
+          price={resolved?.price ?? { input: 0, output: 0 }}
+          custom={resolved?.custom ?? false}
+          hasBuiltin={builtin !== null}
+          onSave={savePrice}
+          onReset={() => setCustom(null)}
+        />
+      ) : (
+        <p className="gat-field__help">{t('options_priceNoModel')}</p>
+      )}
     </Card>
+  );
+}
+
+function modelLabel(model: string): string {
+  return model || t('options_usageModelUnknown');
+}
+
+function CostCell({ cost }: { cost: number | null }) {
+  return (
+    <td className="gat-table__num">
+      {cost === null ? <span className="gat-muted">–</span> : formatUsd(cost)}
+    </td>
   );
 }
 
 function UsageTable({
   title,
-  usage,
+  rows,
   prices,
 }: {
   title: string;
-  usage: UsageByProvider;
+  rows: UsageRow[];
   prices: GlobalSettings['prices'];
 }) {
-  const rows = PROVIDER_IDS.filter((id) => usage[id].calls > 0 || totalTokens(usage[id]) > 0);
+  const sum = sumRows(rows);
   return (
     <div className="gat-usage">
       <h3 className="gat-usage__title">{title}</h3>
@@ -81,6 +121,7 @@ function UsageTable({
           <thead>
             <tr>
               <th scope="col">{t('options_usageProvider')}</th>
+              <th scope="col">{t('options_usageModel')}</th>
               <th scope="col" className="gat-table__num">
                 {t('options_usageCalls')}
               </th>
@@ -96,35 +137,60 @@ function UsageTable({
             </tr>
           </thead>
           <tbody>
-            {rows.map((id) => {
-              const cost = estimateCost(usage[id], prices[id]);
-              return (
-                <tr key={id}>
-                  <th scope="row">{providerLabel(id)}</th>
-                  <td className="gat-table__num">{formatInteger(usage[id].calls)}</td>
-                  <td className="gat-table__num">{formatInteger(usage[id].inputTokens)}</td>
-                  <td className="gat-table__num">{formatInteger(usage[id].outputTokens)}</td>
-                  <td className="gat-table__num">
-                    {cost === null ? <span className="gat-muted">–</span> : formatUsd(cost)}
-                  </td>
-                </tr>
-              );
-            })}
+            {rows.map((row) => (
+              <tr key={`${row.provider}:${row.model}`}>
+                <th scope="row">{providerLabel(row.provider)}</th>
+                <td className={row.model ? 'gat-table__model' : 'gat-table__model gat-muted'}>
+                  {modelLabel(row.model)}
+                </td>
+                <td className="gat-table__num">{formatInteger(row.totals.calls)}</td>
+                <td className="gat-table__num">{formatInteger(row.totals.inputTokens)}</td>
+                <td className="gat-table__num">{formatInteger(row.totals.outputTokens)}</td>
+                <CostCell cost={rowCost(row, prices)} />
+              </tr>
+            ))}
           </tbody>
+          {rows.length > 1 && (
+            <tfoot>
+              <tr>
+                <th scope="row" colSpan={2}>
+                  {t('options_usageTotal')}
+                </th>
+                <td className="gat-table__num">{formatInteger(sum.calls)}</td>
+                <td className="gat-table__num">{formatInteger(sum.inputTokens)}</td>
+                <td className="gat-table__num">{formatInteger(sum.outputTokens)}</td>
+                <CostCell cost={totalCost(rows, prices)} />
+              </tr>
+            </tfoot>
+          )}
         </table>
       )}
     </div>
   );
 }
 
+function priceHelp(provider: ProviderId, model: string, custom: boolean, hasBuiltin: boolean) {
+  if (custom) return t('options_priceHelpCustom', model);
+  if (hasBuiltin) return t('options_priceHelpBuiltin', [model, BUILTIN_PRICES_CHECKED_AT]);
+  return t('options_priceHelp', [providerLabel(provider), model]);
+}
+
 function PriceFields({
   provider,
+  model,
   price,
+  custom,
+  hasBuiltin,
   onSave,
+  onReset,
 }: {
   provider: ProviderId;
+  model: string;
   price: TokenPrice;
+  custom: boolean;
+  hasBuiltin: boolean;
   onSave: (patch: Partial<TokenPrice>) => void;
+  onReset: () => void;
 }) {
   const ids = useId();
   return (
@@ -142,8 +208,13 @@ function PriceFields({
         onCommit={(output) => onSave({ output })}
       />
       <p className="gat-field__help gat-usage__priceHelp">
-        {t('options_priceHelp', providerLabel(provider))}
+        {priceHelp(provider, model, custom, hasBuiltin)}
       </p>
+      {custom && hasBuiltin && (
+        <Button size="sm" onClick={onReset}>
+          {t('options_priceReset')}
+        </Button>
+      )}
     </div>
   );
 }

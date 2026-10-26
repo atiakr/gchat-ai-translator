@@ -8,7 +8,13 @@ import { type I18nKey, t } from '../../i18n/t';
 import { sendToTab } from '../../messaging/protocol';
 import type { GlobalSettings } from '../../settings/schema';
 import { roomInstructions } from '../../settings/storage';
-import { estimateCost, sumByProvider, summarizeUsage, totalTokens } from '../../settings/usage';
+import {
+  summarizeUsage,
+  sumRows,
+  totalCost,
+  totalTokens,
+  type UsageRow,
+} from '../../settings/usage';
 import { Banner } from '../common/Banner';
 import { Button } from '../common/Button';
 import { Card } from '../common/Card';
@@ -122,7 +128,7 @@ export function PopupApp() {
   );
 }
 
-/** 오늘·이번 달 토큰 사용량(모든 서비스 합). 단가가 있으면 서비스별 어림 금액을 더해 보인다. */
+/** 오늘·이번 달 토큰 사용량(모든 서비스·모델 합). 단가를 아는 모델이 있으면 모델별 어림 금액의 합을 붙인다. */
 function UsageRows({
   settings,
   usage,
@@ -133,12 +139,9 @@ function UsageRows({
   now?: () => number;
 }) {
   const summary = summarizeUsage(usage, now());
-  const line = (by: typeof summary.today) => {
-    const tokens = formatTokenCount(totalTokens(sumByProvider(by)));
-    const cost = (Object.keys(by) as (keyof typeof by)[]).reduce<number | null>((acc, id) => {
-      const c = estimateCost(by[id], settings.prices[id]);
-      return c === null ? acc : (acc ?? 0) + c;
-    }, null);
+  const line = (rows: UsageRow[]) => {
+    const tokens = formatTokenCount(totalTokens(sumRows(rows)));
+    const cost = totalCost(rows, settings.prices);
     return cost === null ? tokens : `${tokens} · ${formatUsd(cost)}`;
   };
   return (

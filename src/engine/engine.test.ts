@@ -81,7 +81,7 @@ describe('translateBatch — 호출 조건', () => {
   });
   it('오늘 토큰 상한에 이르렀으면 error/bad_request, 호출 없음(수신·발신 모두)', async () => {
     await setGlobalSettings({ dailyTokenLimit: 10 });
-    await addUsage('openai', { inputTokens: 10, outputTokens: 0 });
+    await addUsage('openai', 'gpt-5-mini', { inputTokens: 10, outputTokens: 0 });
     const { engine, translate } = engineWith();
     const out = await engine.translateBatch('r', 'ko', [item('a')]);
     expect(out).toEqual([{ messageId: 'a', status: 'error', errorKind: 'bad_request' }]);

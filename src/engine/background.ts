@@ -98,13 +98,13 @@ export async function broadcastSettingsChanged(): Promise<void> {
 }
 
 /**
- * 사용량 한 건을 기록한다. 기록 전후로 일일 상한 도달 여부가 바뀌었으면 참을 돌려준다
+ * 사용량 한 건을 서비스·모델별로 기록한다. 기록 전후로 일일 상한 도달 여부가 바뀌었으면 참을 돌려준다
  * (호출자가 설정 변경과 같은 경로로 브로드캐스트·배지 갱신을 한다). 던지지 않는다.
  */
 export async function recordUsage(event: UsageEvent, now: number = Date.now()): Promise<boolean> {
   try {
     const before = await dailyLimitReached(now);
-    await addUsage(event.provider, event.usage, now);
+    await addUsage(event.provider, event.model, event.usage, now);
     const after = await dailyLimitReached(now);
     return before !== after;
   } catch {

@@ -27,7 +27,7 @@ describe('computeBadgeReason', () => {
   });
   it('토큰 상한 도달은 budget 이며 깨짐보다 앞서고 키 없음보다 뒤다', async () => {
     await setGlobalSettings({ dailyTokenLimit: 100 });
-    await addUsage('openai', { inputTokens: 100, outputTokens: 0 });
+    await addUsage('openai', 'gpt-5-mini', { inputTokens: 100, outputTokens: 0 });
     expect(await computeBadgeReason()).toBe('no_key');
     await setApiKey('openai', 'k');
     await setBrokenState({ detectedAt: 1 });

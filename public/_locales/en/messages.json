@@ -445,7 +445,7 @@
     "message": "Usage and cost"
   },
   "options_sectionUsageHelp": {
-    "message": "Token counts reported by the translation service, stored only on this device. Costs are estimates from the prices below and may differ from your actual bill."
+    "message": "Token counts reported by the translation service, per model, stored only on this device. Costs are estimates from each model's price and may differ from your actual bill."
   },
   "options_usageToday": {
     "message": "Today"
@@ -455,6 +455,15 @@
   },
   "options_usageProvider": {
     "message": "Service"
+  },
+  "options_usageModel": {
+    "message": "Model"
+  },
+  "options_usageModelUnknown": {
+    "message": "(model not recorded)"
+  },
+  "options_usageTotal": {
+    "message": "Total"
   },
   "options_usageInputTokens": {
     "message": "Input tokens"
@@ -478,15 +487,43 @@
     "message": "Output price (USD per 1M tokens)"
   },
   "options_priceHelp": {
-    "message": "Prices for $PROVIDER$. Copy them from the service's pricing page. 0 hides the cost.",
+    "message": "No default price for $MODEL$ on $PROVIDER$. Copy it from the service's pricing page. 0 hides the cost.",
     "placeholders": {
       "provider": {
         "content": "$1"
+      },
+      "model": {
+        "content": "$2"
       }
     }
   },
   "options_priceInvalid": {
     "message": "Enter a number of 0 or more."
+  },
+  "options_priceNoModel": {
+    "message": "Set a model to enter its price."
+  },
+  "options_priceReset": {
+    "message": "Reset to default price"
+  },
+  "options_priceHelpCustom": {
+    "message": "Price you entered for $MODEL$.",
+    "placeholders": {
+      "model": {
+        "content": "$1"
+      }
+    }
+  },
+  "options_priceHelpBuiltin": {
+    "message": "Public list price for $MODEL$ (checked $DATE$, excluding cache and batch discounts). Enter a new value if yours differs.",
+    "placeholders": {
+      "model": {
+        "content": "$1"
+      },
+      "date": {
+        "content": "$2"
+      }
+    }
   },
   "popup_usageToday": {
     "message": "Used today"
