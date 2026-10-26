@@ -8,7 +8,7 @@ import { LanguageSelect } from './LanguageSelect';
 /** 번역 호출 실패 종류. 서비스 오류 분류 + 메시징 자체가 실패한 경우(`unknown`). */
 export type OutgoingError = ErrorKind | 'unknown';
 
-const ERROR_KEYS: Record<OutgoingError, I18nKey> = {
+export const ERROR_KEYS: Record<OutgoingError, I18nKey> = {
   auth: 'outgoing_error_auth',
   rate_limit: 'outgoing_error_rate_limit',
   server: 'outgoing_error_server',

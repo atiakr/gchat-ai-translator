@@ -15,13 +15,15 @@ import { createIncomingMounts } from '../incoming/mount';
 import { BlockedNotice } from './BlockedNotice';
 import { HeaderToggle } from './HeaderToggle';
 import { createShadowHost, type ShadowHost } from './host';
-import { type OutgoingError, PreviewPanel } from './PreviewPanel';
+import { hasRichContent, type OutgoingError, PreviewPanel } from './PreviewPanel';
+import { QuickStatus } from './QuickStatus';
 import { TranslateButton } from './TranslateButton';
 
 /**
  * 발신 번역("보내기 전 번역") 컨트롤러.
  *
- * 사용자가 확인을 누르기 전에는 아무것도 전송하지 않는다.
+ * 사용자가 확인을 누르기 전에는 아무것도 전송하지 않는다. 예외는 사용자가 방에서 켠 바로 번역의 그냥 Enter 로,
+ * 번역이 끝나면 확인 없이 보낸다. 그때도 번역에 실패하거나 기다리는 사이 방·입력창 글이 바뀌면 보내지 않는다.
  * 키 핸들러는 입력창 요소에만 건다(문서 수준 핸들러 없음, 입력창에서는 캡처 단계로 받는다). 페이지 전역 객체는 만지지 않는다.
  */
 
@@ -65,6 +67,8 @@ export interface OutgoingState {
   sendFailed: boolean;
   /** Enter 번역이 켜진 방에서 번역할 수 없어 전송을 막았다는 안내만 띄운 상태. */
   blocked: boolean;
+  /** 바로 번역의 그냥 Enter 로 시작해 번역이 끝나면 확인 없이 보내는 상태. 미리보기 대신 작은 대기 줄만 띄운다. */
+  quick: boolean;
 }
 
 export interface OutgoingController {
@@ -74,7 +78,7 @@ export interface OutgoingController {
   setEnabled(enabled: boolean): void;
   /** 버튼·단축키·command 공통 진입. 꺼져 있거나 입력창이 비면 아무 일도 하지 않는다. */
   trigger(): Promise<void>;
-  /** 방 설정의 Enter 번역. 켜면 그냥 Enter 도 바로 보내지 않고 미리보기를 연다. */
+  /** 방 설정의 Enter 번역. 켜면 그냥 Enter 가 원문 대신 번역문을 보낸다(번역이 끝나면 확인 없이). */
   setEnterTranslate(on: boolean): void;
   /** 입력창의 keydown. Ctrl/Cmd+Shift+Enter 와, Enter 번역이 켜졌을 때의 그냥 Enter 만 가로챈다. */
   onShortcutKey(e: KeyboardEvent): void;
@@ -128,6 +132,7 @@ function initialState(): OutgoingState {
     rich: NO_RICH,
     sendFailed: false,
     blocked: false,
+    quick: false,
   };
 }
 
@@ -179,6 +184,8 @@ export function createOutgoingController(
   let header: HeaderMount | null = null;
   let activeComposer: ComposerInfo | null = null;
   let translateSeq = 0;
+  /** 번역을 시작한 방. 바로 번역은 기다리는 사이 방이 바뀌었으면 보내지 않는다. */
+  let startedRoom = '';
   let lastFireAt: number | null = null;
   let sentWatch: SentWatch | null = null;
   /** 번역해 보낸 내 메시지: 본문(보낸 번역문)을 숨기고 그 자리에 내 원문을 그린다. 수신 쪽과 묶음을 나눈다. */
@@ -319,6 +326,18 @@ export function createOutgoingController(
     const p = ensurePanel(region);
     p.host.setTheme(adapter.getChatTheme());
     p.reposition();
+    if (state.quick) {
+      p.root.render(
+        createElement(QuickStatus, {
+          error: state.error,
+          translating: state.translating,
+          onCancel: cancel,
+          onRetry: () => void retry(),
+          onOpenPreview: () => void openPreview(),
+        }),
+      );
+      return;
+    }
     if (state.blocked) {
       p.root.render(
         createElement(BlockedNotice, {
@@ -409,6 +428,72 @@ export function createOutgoingController(
     if (seq !== translateSeq || !state.open) return;
     state = { ...state, ...next, translating: false };
     render();
+    if (state.quick && !state.error) await sendQuick();
+  }
+
+  /* ---------------- 전송 ---------------- */
+
+  /** 입력창을 번역문으로 바꾸고 보내기를 누른다. 보내지 못하면 번역문을 입력창에 남기고 미리보기로 안내한다. */
+  async function sendTranslation(): Promise<void> {
+    const { translation: sentText, original, lang, saveAsDefault } = state;
+    let composer = activeComposer;
+    if (!composer?.textbox.isConnected) composer = adapter.getActiveComposer();
+    if (!composer) {
+      state = { ...state, quick: false, sendFailed: true };
+      render();
+      return;
+    }
+    const before = new Set(adapter.listMessageContainers());
+    adapter.setComposerText(composer.textbox, sentText);
+    const sent = adapter.clickSend(composer.sendButton);
+    if (!sent) {
+      // 번역문은 입력창에 남겨 두고 직접 Enter 로 보내라고 안내한다.
+      state = { ...state, quick: false, sendFailed: true };
+      render();
+      return;
+    }
+    const room = roomId();
+    const roomName = currentRoomName(room);
+    closePanel();
+    startSentWatch(sentText, original, before);
+    if (saveAsDefault) {
+      try {
+        await deps.setRoomSettings(room, {
+          outgoingLang: lang,
+          ...(roomName ? { name: roomName } : {}),
+        });
+      } catch {
+        // 방 설정 저장 실패는 전송 결과에 영향을 주지 않는다.
+      }
+    }
+    try {
+      await deps.sendMessage('sentOriginal.save', { roomId: room, sentText, original });
+    } catch {
+      // 원문 기록 실패는 조용히 넘긴다(이 기기 표시 전용).
+    }
+  }
+
+  /** 바로 번역을 시작한 뒤 방·입력창·입력창 글이 그대로인지. 다른 방으로, 또는 바뀐 글 대신 보내지 않기 위해 본다. */
+  function quickStillValid(): boolean {
+    if (!enabled || roomId() !== startedRoom) return false;
+    try {
+      const room = adapter.getCurrentRoom();
+      if (room && room.roomId !== startedRoom) return false;
+    } catch {
+      return false;
+    }
+    const textbox = activeComposer?.textbox;
+    if (!textbox?.isConnected || mounted?.composer.textbox !== textbox) return false;
+    return adapter.readComposerText(textbox) === state.original;
+  }
+
+  async function sendQuick(): Promise<void> {
+    if (destroyed || !state.open || !state.quick) return;
+    if (state.translation.trim().length === 0 || !quickStillValid()) {
+      closePanel();
+      return;
+    }
+    await sendTranslation();
   }
 
   /* ---------------- 내 원문 ---------------- */
@@ -530,7 +615,8 @@ export function createOutgoingController(
     render();
   }
 
-  async function trigger(): Promise<void> {
+  /** 번역을 시작한다. `quick` 이면 미리보기 없이 번역이 끝나는 대로 보낸다(멘션·서식·첨부가 있으면 미리보기). */
+  async function start(quick: boolean): Promise<void> {
     if (destroyed || !enabled || !mounted) return;
     const composer = adapter.getActiveComposer();
     if (!composer) return;
@@ -541,16 +627,23 @@ export function createOutgoingController(
     const lang = await resolveLang();
     if (destroyed || !enabled) return;
     activeComposer = composer;
-    state = { ...initialState(), open: true, original, rich, lang };
+    startedRoom = roomId();
+    // 번역문으로 바꾸면 멘션·서식이 사라지므로, 섞여 있으면 바로 보내지 않고 미리보기에서 경고를 보여 준다.
+    const autoSend = quick && !hasRichContent(rich);
+    state = { ...initialState(), open: true, original, rich, lang, quick: autoSend };
     render();
     await translate();
   }
 
-  function fire(): void {
+  function trigger(): Promise<void> {
+    return start(false);
+  }
+
+  function fire(quick = false): void {
     const at = deps.now();
     if (lastFireAt !== null && at - lastFireAt < DEFAULTS.shortcutDedupeMs) return;
     lastFireAt = at;
-    void trigger();
+    void start(quick);
   }
 
   function onShortcutKey(e: KeyboardEvent): void {
@@ -561,14 +654,28 @@ export function createOutgoingController(
       fire();
       return;
     }
+    // 바로 번역을 기다리는 동안 입력창에 포커스가 있으므로 Esc 는 여기서 받아 취소한다.
+    if (state.quick && e.key === 'Escape' && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      cancel();
+      return;
+    }
     // 그 밖의 키는 Google Chat 으로 그대로 흘려보낸다. 그냥 Enter 는 이 방에서 Enter 번역을 켰을 때만 막는다.
     if (!enterTranslates || !isPlainEnter(e) || !mounted) return;
     // 글이 없으면(첨부만 있는 메시지 등) Google Chat 이 평소대로 보낸다.
     if (adapter.isComposerEmpty(mounted.composer.textbox)) return;
+    // 보내기에 실패해 번역문이 입력창에 남은 상태: 안내대로 직접 누르는 Enter 는 그대로 보낸다.
+    if (state.sendFailed) {
+      closePanel();
+      return;
+    }
     e.preventDefault();
     e.stopImmediatePropagation();
+    // 이미 번역을 기다리는 중이면 다시 시작하지 않는다(원문도 보내지 않는다).
+    if (state.quick) return;
     // 번역할 수 없으면 원문이 그대로 나가지 않게 막고 안내만 띄운다.
-    if (enabled) fire();
+    if (enabled) fire(true);
     else showBlocked();
   }
 
@@ -578,45 +685,9 @@ export function createOutgoingController(
   }
 
   async function confirm(): Promise<void> {
-    if (!state.open || state.translating || state.sendFailed) return;
-    const sentText = state.translation;
-    if (sentText.trim().length === 0) return;
-    let composer = activeComposer;
-    if (!composer?.textbox.isConnected) composer = adapter.getActiveComposer();
-    if (!composer) {
-      state = { ...state, sendFailed: true };
-      render();
-      return;
-    }
-    const before = new Set(adapter.listMessageContainers());
-    adapter.setComposerText(composer.textbox, sentText);
-    const sent = adapter.clickSend(composer.sendButton);
-    if (!sent) {
-      // 번역문은 입력창에 남겨 두고 직접 Enter 로 보내라고 안내한다.
-      state = { ...state, sendFailed: true };
-      render();
-      return;
-    }
-    const { original, lang, saveAsDefault } = state;
-    const room = roomId();
-    const roomName = currentRoomName(room);
-    closePanel();
-    startSentWatch(sentText, original, before);
-    if (saveAsDefault) {
-      try {
-        await deps.setRoomSettings(room, {
-          outgoingLang: lang,
-          ...(roomName ? { name: roomName } : {}),
-        });
-      } catch {
-        // 방 설정 저장 실패는 전송 결과에 영향을 주지 않는다.
-      }
-    }
-    try {
-      await deps.sendMessage('sentOriginal.save', { roomId: room, sentText, original });
-    } catch {
-      // 원문 기록 실패는 조용히 넘긴다(이 기기 표시 전용).
-    }
+    if (!state.open || state.quick || state.translating || state.sendFailed) return;
+    if (state.translation.trim().length === 0) return;
+    await sendTranslation();
   }
 
   function cancel(): void {
@@ -627,6 +698,14 @@ export function createOutgoingController(
   async function retry(): Promise<void> {
     if (!state.open || state.translating) return;
     await translate();
+  }
+
+  /** 바로 번역이 실패했을 때 미리보기로 바꿔 다시 번역한다. 이후에는 확인해야 보낸다. */
+  async function openPreview(): Promise<void> {
+    if (!state.open || !state.quick) return;
+    state = { ...state, quick: false };
+    render();
+    if (state.error) await translate();
   }
 
   async function changeLanguage(code: LanguageCode): Promise<void> {

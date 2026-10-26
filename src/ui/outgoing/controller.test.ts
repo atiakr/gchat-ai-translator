@@ -509,16 +509,176 @@ describe('Enter 번역', () => {
     new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true, ...init });
   const panelText = () => panelHost()?.shadowRoot?.textContent ?? '';
 
-  it('켜면 그냥 Enter 를 막고 미리보기를 연다(확인 전에는 보내지 않는다)', async () => {
+  const buttonIn = (label: string) =>
+    Array.from(panelHost()?.shadowRoot?.querySelectorAll('button') ?? []).find(
+      (b) => b.textContent === label,
+    );
+
+  /** 번역 응답을 테스트가 직접 풀어 주게 한다. */
+  function holdTranslation(h: Harness) {
+    const pending: Array<(r: MessageMap['translate.outgoing']['response']) => void> = [];
+    h.msg.outgoing = () => new Promise((resolve) => pending.push(resolve));
+    return {
+      resolve(translation: string) {
+        pending.shift()?.({ ok: true, translation, detectedLang: 'ko' });
+      },
+      fail() {
+        pending.shift()?.({ ok: false, errorKind: 'server' } as never);
+      },
+    };
+  }
+
+  function startQuick(text = '안녕') {
     const h = track(setup());
     h.controller.mount(ROOM, true);
     h.controller.setEnterTranslate(true);
-    h.adapter.text = '안녕';
+    h.adapter.text = text;
+    return h;
+  }
+
+  it('켜면 그냥 Enter 를 막고, 대기 줄만 띄운 뒤 번역이 끝나면 확인 없이 보낸다', async () => {
+    const h = startQuick();
+    const hold = holdTranslation(h);
     const e = enter();
     h.adapter.composer?.textbox.dispatchEvent(e);
     expect(e.defaultPrevented).toBe(true);
+    await vi.waitFor(() => expect(panelText()).toContain(t('outgoing_quickWaiting')));
+    expect(panelText()).not.toContain(t('outgoing_original'));
+    expect(h.adapter.clickSend).not.toHaveBeenCalled();
+
+    hold.resolve('Hello');
+    await vi.waitFor(() => expect(h.adapter.clickSend).toHaveBeenCalledTimes(1));
+    expect(h.adapter.text).toBe('Hello');
+    expect(panelHost()).toBeNull();
+    await vi.waitFor(() =>
+      expect(h.msg.of('sentOriginal.save')).toEqual([
+        { roomId: ROOM, sentText: 'Hello', original: '안녕' },
+      ]),
+    );
+    expect(h.setRoomSettings).not.toHaveBeenCalled();
+  });
+
+  it('멘션·서식·첨부가 섞여 있으면 바로 보내지 않고 미리보기를 연다', async () => {
+    const h = startQuick();
+    h.adapter.rich = { mentions: true, formatting: false, attachments: false };
+    h.adapter.composer?.textbox.dispatchEvent(enter());
+    await vi.waitFor(() => expect(h.controller.getState().translation).not.toBe(''));
+    expect(h.controller.getState()).toMatchObject({ open: true, quick: false });
+    expect(panelText()).toContain(t('outgoing_richWarning'));
+    expect(h.adapter.clickSend).not.toHaveBeenCalled();
+  });
+
+  it('번역에 실패하면 원문을 보내지 않고, 다시 시도해 성공하면 보낸다', async () => {
+    const h = startQuick();
+    const hold = holdTranslation(h);
+    h.adapter.composer?.textbox.dispatchEvent(enter());
     await vi.waitFor(() => expect(h.msg.of('translate.outgoing')).toHaveLength(1));
-    expect(h.controller.getState().open).toBe(true);
+    hold.fail();
+    await vi.waitFor(() => expect(panelText()).toContain(t('outgoing_quickNotSent')));
+    expect(h.adapter.clickSend).not.toHaveBeenCalled();
+    expect(h.adapter.text).toBe('안녕');
+
+    buttonIn(t('common_retry'))?.click();
+    await vi.waitFor(() => expect(h.msg.of('translate.outgoing')).toHaveLength(2));
+    hold.resolve('Hello');
+    await vi.waitFor(() => expect(h.adapter.clickSend).toHaveBeenCalledTimes(1));
+    expect(h.adapter.text).toBe('Hello');
+  });
+
+  it('실패 후 "미리보기로 열기" 를 누르면 미리보기에서 다시 번역하고 확인해야 보낸다', async () => {
+    const h = startQuick();
+    const hold = holdTranslation(h);
+    h.adapter.composer?.textbox.dispatchEvent(enter());
+    await vi.waitFor(() => expect(h.msg.of('translate.outgoing')).toHaveLength(1));
+    hold.fail();
+    await vi.waitFor(() => expect(buttonIn(t('outgoing_quickOpenPreview'))).toBeDefined());
+    buttonIn(t('outgoing_quickOpenPreview'))?.click();
+    await vi.waitFor(() => expect(h.msg.of('translate.outgoing')).toHaveLength(2));
+    hold.resolve('Hello');
+    await vi.waitFor(() => expect(h.controller.getState().translation).toBe('Hello'));
+    expect(h.controller.getState().quick).toBe(false);
+    expect(h.adapter.clickSend).not.toHaveBeenCalled();
+    await h.controller.confirm();
+    expect(h.adapter.clickSend).toHaveBeenCalledTimes(1);
+  });
+
+  it('기다리는 사이 입력창 글이 바뀌면 보내지 않는다', async () => {
+    const h = startQuick();
+    const hold = holdTranslation(h);
+    h.adapter.composer?.textbox.dispatchEvent(enter());
+    await vi.waitFor(() => expect(h.msg.of('translate.outgoing')).toHaveLength(1));
+    h.adapter.text = '안녕하세요';
+    hold.resolve('Hello');
+    await vi.waitFor(() => expect(h.controller.getState().open).toBe(false));
+    expect(h.adapter.clickSend).not.toHaveBeenCalled();
+    expect(h.adapter.text).toBe('안녕하세요');
+  });
+
+  it('기다리는 사이 방이 바뀌면 보내지 않는다', async () => {
+    const h = startQuick();
+    const hold = holdTranslation(h);
+    h.adapter.composer?.textbox.dispatchEvent(enter());
+    await vi.waitFor(() => expect(h.msg.of('translate.outgoing')).toHaveLength(1));
+    h.adapter.room = { roomId: 'dm/room2', name: 'Bob' };
+    h.controller.mount('dm/room2', true);
+    hold.resolve('Hello');
+    await vi.advanceTimersByTimeAsync(0);
+    expect(h.adapter.clickSend).not.toHaveBeenCalled();
+    expect(h.controller.getState().open).toBe(false);
+  });
+
+  it('기다리는 사이 꺼지면 보내지 않는다', async () => {
+    const h = startQuick();
+    const hold = holdTranslation(h);
+    h.adapter.composer?.textbox.dispatchEvent(enter());
+    await vi.waitFor(() => expect(h.msg.of('translate.outgoing')).toHaveLength(1));
+    h.controller.setEnabled(false);
+    hold.resolve('Hello');
+    await vi.advanceTimersByTimeAsync(0);
+    expect(h.adapter.clickSend).not.toHaveBeenCalled();
+  });
+
+  it('기다리는 중 Esc 는 취소하고, 다시 누른 Enter 는 막기만 하고 새로 요청하지 않는다', async () => {
+    const h = startQuick();
+    const hold = holdTranslation(h);
+    h.adapter.composer?.textbox.dispatchEvent(enter());
+    await vi.waitFor(() => expect(h.msg.of('translate.outgoing')).toHaveLength(1));
+    h.now.value += DEFAULTS.shortcutDedupeMs + 1;
+    const again = enter();
+    h.adapter.composer?.textbox.dispatchEvent(again);
+    expect(again.defaultPrevented).toBe(true);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(h.msg.of('translate.outgoing')).toHaveLength(1);
+
+    const esc = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
+    h.adapter.composer?.textbox.dispatchEvent(esc);
+    expect(esc.defaultPrevented).toBe(true);
+    expect(h.controller.getState().open).toBe(false);
+    hold.resolve('Hello');
+    await vi.advanceTimersByTimeAsync(0);
+    expect(h.adapter.clickSend).not.toHaveBeenCalled();
+    expect(h.adapter.text).toBe('안녕');
+  });
+
+  it('보내기에 실패하면 미리보기로 안내하고, 이어서 누른 그냥 Enter 는 Google Chat 으로 흘려보낸다', async () => {
+    const h = startQuick();
+    h.adapter.sendOk = false;
+    h.adapter.composer?.textbox.dispatchEvent(enter());
+    await vi.waitFor(() => expect(h.controller.getState().sendFailed).toBe(true));
+    expect(h.controller.getState().quick).toBe(false);
+    expect(panelText()).toContain(t('outgoing_sendFailed'));
+    expect(h.adapter.text).toBe('[en] 안녕');
+    const e = enter();
+    h.adapter.composer?.textbox.dispatchEvent(e);
+    expect(e.defaultPrevented).toBe(false);
+    expect(h.controller.getState().open).toBe(false);
+  });
+
+  it('켜져 있어도 Ctrl+Shift+Enter 는 미리보기를 연다', async () => {
+    const h = startQuick();
+    h.adapter.composer?.textbox.dispatchEvent(enter({ ctrlKey: true, shiftKey: true }));
+    await vi.waitFor(() => expect(h.controller.getState().translation).not.toBe(''));
+    expect(h.controller.getState().quick).toBe(false);
     expect(h.adapter.clickSend).not.toHaveBeenCalled();
   });
 

@@ -123,7 +123,7 @@
     "message": "Quick translate"
   },
   "outgoing_enterToggleOn": {
-    "message": "Quick translate on: Enter translates before sending (click to turn off)"
+    "message": "Quick translate on: Enter translates and sends right away (click to turn off)"
   },
   "outgoing_enterToggleOff": {
     "message": "Quick translate off: Enter sends the original as is (click to turn on)"
@@ -163,6 +163,15 @@
   },
   "outgoing_enterTurnOff": {
     "message": "Turn off quick translate in this room"
+  },
+  "outgoing_quickWaiting": {
+    "message": "Waiting for translation… it will be sent right away"
+  },
+  "outgoing_quickNotSent": {
+    "message": "Not sent."
+  },
+  "outgoing_quickOpenPreview": {
+    "message": "Open preview"
   },
   "outgoing_error_auth": {
     "message": "The API key is not valid. Check the key in settings."

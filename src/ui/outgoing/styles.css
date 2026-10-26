@@ -137,6 +137,19 @@
   overflow: auto;
 }
 
+/* 바로 번역 대기 줄: 미리보기 패널보다 작게 */
+.gat-panel--compact {
+  gap: var(--gat-space-2);
+  padding: var(--gat-space-2) var(--gat-space-3);
+}
+
+.gat-quick {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gat-space-2);
+}
+
 .gat-panel__header {
   display: flex;
   align-items: center;

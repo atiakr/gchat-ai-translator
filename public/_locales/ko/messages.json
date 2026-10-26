@@ -123,7 +123,7 @@
     "message": "바로 번역"
   },
   "outgoing_enterToggleOn": {
-    "message": "바로 번역 켜짐: Enter 로 보낼 때 번역을 거칩니다 (누르면 끔)"
+    "message": "바로 번역 켜짐: Enter 를 누르면 번역해서 바로 보냅니다 (누르면 끔)"
   },
   "outgoing_enterToggleOff": {
     "message": "바로 번역 꺼짐: Enter 로 원문을 그대로 보냅니다 (누르면 켬)"
@@ -163,6 +163,15 @@
   },
   "outgoing_enterTurnOff": {
     "message": "이 방에서 바로 번역 끄기"
+  },
+  "outgoing_quickWaiting": {
+    "message": "번역을 기다리는 중… 끝나면 바로 보냅니다"
+  },
+  "outgoing_quickNotSent": {
+    "message": "보내지 않았습니다."
+  },
+  "outgoing_quickOpenPreview": {
+    "message": "미리보기로 열기"
   },
   "outgoing_error_auth": {
     "message": "API 키가 올바르지 않습니다. 설정에서 키를 확인하세요."
