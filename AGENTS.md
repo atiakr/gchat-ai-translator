@@ -60,5 +60,5 @@ Tell the user immediately if:
 - An API key shows up in sync storage, the content script, logs, or error messages.
 - A translation call happens while the extension is off or has no key, or the user's own message is translated automatically.
 - The extension blocks typing, sending, or scrolling in Google Chat, or an extension error breaks the Google Chat page.
-- Outgoing translation sends a message before confirmation, or sends it to a different conversation.
+- Outgoing translation sends a message before confirmation (other than a plain Enter in a room where the user turned on quick translate), or sends it to a different conversation.
 - The manifest permissions differ from the fixed list.
